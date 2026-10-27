@@ -11,12 +11,8 @@ export function parseAppId(query: string): string | null {
 
 export function matchesGameIdentity(game: Game, query: string): boolean {
   const appId = parseAppId(query);
-  if (appId) return String(game.appId) === appId;
-  const identity = query.trim().toLowerCase();
-  if (!identity) return false;
-  // Numeric identities must be a complete App ID, not a broad numeric prefix.
-  if (/^\d+$/.test(identity)) return String(game.appId) === identity;
-  return game.name.toLowerCase().includes(identity);
+  // Games are revealed only by Steam App ID, never by name.
+  return appId !== null && String(game.appId) === appId;
 }
 
 export function visibleGameRecords<T extends { gameId?: string | undefined }>(records: T[], games: Game[], query: string): T[] {

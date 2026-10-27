@@ -6,8 +6,8 @@ describe("Search-only game visibility everywhere", () => {
   it("hides every game for empty or whitespace searches", () => {
     for (const query of ["", "   "]) expect(sampleGames.filter((g) => matchesGameIdentity(g, query))).toEqual([]);
   });
-  it("reveals only a matching game name, case-insensitively", () => {
-    expect(sampleGames.filter((g) => matchesGameIdentity(g, " ELDEN RING ")).map((g) => g.id)).toEqual(["eldenring"]);
+  it("never reveals games by name", () => {
+    expect(sampleGames.filter((g) => matchesGameIdentity(g, "Elden Ring"))).toEqual([]);
   });
   it("requires the complete Steam App ID and does not match genres", () => {
     expect(sampleGames.filter((g) => matchesGameIdentity(g, "730")).map((g) => g.id)).toEqual(["cs2"]);
