@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import logoMark from "@/assets/logo-monogram.png";
 import type { LucideIcon } from "lucide-react";
 import {
   Archive, Download, FileCog, FileDown, FileUp, Gamepad2, History, Layers, Puzzle,
@@ -8,13 +9,13 @@ import type { ActivityType, ConfigStatus, Game } from "@/lib/types";
 
 export function Logo({ size = 32 }: { size?: number }) {
   return (
-    <div
-      className="bg-brand shadow-glow grid shrink-0 place-items-center rounded-lg font-bold tracking-tight text-primary-foreground"
-      style={{ width: size, height: size, fontSize: size * 0.42 }}
-      aria-label="AfScripts logo"
-    >
-      <span className="-translate-y-px">A<span className="italic opacity-90">f</span></span>
-    </div>
+    <img
+      src={logoMark}
+      alt="AfScripts logo"
+      className="shrink-0 select-none"
+      style={{ width: size, height: size }}
+      draggable={false}
+    />
   );
 }
 
