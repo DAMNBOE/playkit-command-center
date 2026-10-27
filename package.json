@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "build:desktop": "AFSCRIPTS_DESKTOP=1 vite build && cp dist/client/_shell.html dist/client/index.html",
+    "build:desktop": "AFSCRIPTS_DESKTOP=1 vite build && bun ./scripts/desktop-index.mjs",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
