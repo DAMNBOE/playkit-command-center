@@ -11,10 +11,8 @@ export function parseAppId(query: string): string | null {
 
 export function matchesGameIdentity(game: Game, query: string): boolean {
   const appId = parseAppId(query);
-  return appId !== null && String(game.appId) === appId;
-
   // Games are revealed only by Steam App ID, never by name.
-  return false;
+  return appId !== null && String(game.appId) === appId;
 }
 
 export function visibleGameRecords<T extends { gameId?: string | undefined }>(records: T[], games: Game[], query: string): T[] {
