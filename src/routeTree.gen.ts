@@ -10,33 +10,150 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ActivityRouteImport } from './routes/activity'
+import { Route as ConfigurationsRouteImport } from './routes/configurations'
+import { Route as DownloadsRouteImport } from './routes/downloads'
+import { Route as GamesRouteImport } from './routes/games'
+import { Route as PluginsRouteImport } from './routes/plugins'
+import { Route as PresetsRouteImport } from './routes/presets'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as GamesIndexRouteImport } from './routes/games.index'
+import { Route as GamesGameIdRouteImport } from './routes/games.$gameId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ActivityRoute = ActivityRouteImport.update({
+  id: '/activity',
+  path: '/activity',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfigurationsRoute = ConfigurationsRouteImport.update({
+  id: '/configurations',
+  path: '/configurations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DownloadsRoute = DownloadsRouteImport.update({
+  id: '/downloads',
+  path: '/downloads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GamesRoute = GamesRouteImport.update({
+  id: '/games',
+  path: '/games',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PluginsRoute = PluginsRouteImport.update({
+  id: '/plugins',
+  path: '/plugins',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PresetsRoute = PresetsRouteImport.update({
+  id: '/presets',
+  path: '/presets',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GamesIndexRoute = GamesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => GamesRoute,
+} as any)
+const GamesGameIdRoute = GamesGameIdRouteImport.update({
+  id: '/$gameId',
+  path: '/$gameId',
+  getParentRoute: () => GamesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/activity': typeof ActivityRoute
+  '/configurations': typeof ConfigurationsRoute
+  '/downloads': typeof DownloadsRoute
+  '/games': typeof GamesRouteWithChildren
+  '/plugins': typeof PluginsRoute
+  '/presets': typeof PresetsRoute
+  '/settings': typeof SettingsRoute
+  '/games/$gameId': typeof GamesGameIdRoute
+  '/games/': typeof GamesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/activity': typeof ActivityRoute
+  '/configurations': typeof ConfigurationsRoute
+  '/downloads': typeof DownloadsRoute
+  '/plugins': typeof PluginsRoute
+  '/presets': typeof PresetsRoute
+  '/settings': typeof SettingsRoute
+  '/games/$gameId': typeof GamesGameIdRoute
+  '/games': typeof GamesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/activity': typeof ActivityRoute
+  '/configurations': typeof ConfigurationsRoute
+  '/downloads': typeof DownloadsRoute
+  '/games': typeof GamesRouteWithChildren
+  '/plugins': typeof PluginsRoute
+  '/presets': typeof PresetsRoute
+  '/settings': typeof SettingsRoute
+  '/games/$gameId': typeof GamesGameIdRoute
+  '/games/': typeof GamesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/activity'
+    | '/configurations'
+    | '/downloads'
+    | '/games'
+    | '/plugins'
+    | '/presets'
+    | '/settings'
+    | '/games/$gameId'
+    | '/games/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/activity'
+    | '/configurations'
+    | '/downloads'
+    | '/plugins'
+    | '/presets'
+    | '/settings'
+    | '/games/$gameId'
+    | '/games'
+  id:
+    | '__root__'
+    | '/'
+    | '/activity'
+    | '/configurations'
+    | '/downloads'
+    | '/games'
+    | '/plugins'
+    | '/presets'
+    | '/settings'
+    | '/games/$gameId'
+    | '/games/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ActivityRoute: typeof ActivityRoute
+  ConfigurationsRoute: typeof ConfigurationsRoute
+  DownloadsRoute: typeof DownloadsRoute
+  GamesRoute: typeof GamesRouteWithChildren
+  PluginsRoute: typeof PluginsRoute
+  PresetsRoute: typeof PresetsRoute
+  SettingsRoute: typeof SettingsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +165,93 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/activity': {
+      id: '/activity'
+      path: '/activity'
+      fullPath: '/activity'
+      preLoaderRoute: typeof ActivityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configurations': {
+      id: '/configurations'
+      path: '/configurations'
+      fullPath: '/configurations'
+      preLoaderRoute: typeof ConfigurationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/downloads': {
+      id: '/downloads'
+      path: '/downloads'
+      fullPath: '/downloads'
+      preLoaderRoute: typeof DownloadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/games': {
+      id: '/games'
+      path: '/games'
+      fullPath: '/games'
+      preLoaderRoute: typeof GamesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/plugins': {
+      id: '/plugins'
+      path: '/plugins'
+      fullPath: '/plugins'
+      preLoaderRoute: typeof PluginsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/presets': {
+      id: '/presets'
+      path: '/presets'
+      fullPath: '/presets'
+      preLoaderRoute: typeof PresetsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/games/': {
+      id: '/games/'
+      path: '/'
+      fullPath: '/games/'
+      preLoaderRoute: typeof GamesIndexRouteImport
+      parentRoute: typeof GamesRoute
+    }
+    '/games/$gameId': {
+      id: '/games/$gameId'
+      path: '/$gameId'
+      fullPath: '/games/$gameId'
+      preLoaderRoute: typeof GamesGameIdRouteImport
+      parentRoute: typeof GamesRoute
+    }
   }
 }
 
+interface GamesRouteChildren {
+  GamesGameIdRoute: typeof GamesGameIdRoute
+  GamesIndexRoute: typeof GamesIndexRoute
+}
+
+const GamesRouteChildren: GamesRouteChildren = {
+  GamesGameIdRoute: GamesGameIdRoute,
+  GamesIndexRoute: GamesIndexRoute,
+}
+
+const GamesRouteWithChildren = GamesRoute._addFileChildren(GamesRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ActivityRoute: ActivityRoute,
+  ConfigurationsRoute: ConfigurationsRoute,
+  DownloadsRoute: DownloadsRoute,
+  GamesRoute: GamesRouteWithChildren,
+  PluginsRoute: PluginsRoute,
+  PresetsRoute: PresetsRoute,
+  SettingsRoute: SettingsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
