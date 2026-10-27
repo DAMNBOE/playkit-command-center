@@ -35,7 +35,7 @@ const statusMeta: Record<DownloadStatus, { label: string; cls: string; icon: typ
 const fmtMb = (mb: number) => (mb >= 1024 ? `${(mb / 1024).toFixed(2)} GB` : `${mb.toFixed(mb < 10 ? 1 : 0)} MB`);
 
 function Downloads() {
-  const { downloads, update, settings, log, notify, gameById } = useStore();
+  const { downloads, update, settings, log, notify, fail, gameById } = useStore();
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -49,9 +49,16 @@ function Downloads() {
   }, [update, settings.maxConcurrent, notify, log]);
 
   const set = (id: string, patch: Partial<Download>) => update("downloads", (ds) => ds.map((d) => (d.id === id ? { ...d, ...patch } : d)));
-  const pause = (d: Download) => { getPlatform().pauseDownload(d.id); set(d.id, { status: "paused", speedMbps: 0 }); };
+  const pause = async (d: Download) => {
+    try { await getPlatform().pauseDownload(d.id); set(d.id, { status: "paused", speedMbps: 0 }); }
+    catch (e) { fail("Could not pause download", (e as Error).message); }
+  };
   const resume = (d: Download) => set(d.id, { status: "queued" });
-  const cancel = (d: Download) => { getPlatform().cancelDownload(d.id); update("downloads", (ds) => ds.filter((x) => x.id !== d.id)); notify("Download cancelled", d.name); };
+  const cancel = async (d: Download) => {
+    try { await getPlatform().cancelDownload(d.id); }
+    catch (e) { fail("Could not cancel download", (e as Error).message); return; }
+    update("downloads", (ds) => ds.filter((x) => x.id !== d.id)); notify("Download cancelled", d.name);
+  };
   const retry = (d: Download) => { set(d.id, { status: "queued", progress: 0 }); log("download", `Retrying download: ${d.name}`, d.gameId); };
   const clearCompleted = () => update("downloads", (ds) => ds.filter((d) => d.status !== "completed"));
 

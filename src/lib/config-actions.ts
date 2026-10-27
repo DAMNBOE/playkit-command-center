@@ -5,10 +5,11 @@ import type { ConfigFile } from "./types";
 
 /** Shared configuration operations (backup, restore, export) used across pages. */
 export function useConfigActions() {
-  const { update, log, notify, settings } = useStore();
+  const { update, log, notify, fail, settings } = useStore();
 
   const backup = async (c: ConfigFile, label = "Manual backup") => {
-    await getPlatform().createBackup(c.path, c.content);
+    try { await getPlatform().createBackup(c.path, c.content); }
+    catch (e) { fail("Backup failed", (e as Error).message); return; }
     update("configs", (cs) => cs.map((x) => x.id === c.id
       ? { ...x, backups: [{ id: uid(), label, createdAt: new Date().toISOString(), content: c.content }, ...x.backups].slice(0, settings.backupLimit) }
       : x));
@@ -25,7 +26,8 @@ export function useConfigActions() {
   };
 
   const exportFile = (c: ConfigFile) => {
-    downloadFile(c.name, c.content);
+    try { downloadFile(c.name, c.content); }
+    catch (e) { fail("Export failed", (e as Error).message); return; }
     log("export", `Exported ${c.name}`, c.gameId);
     notify("Configuration exported", c.name);
   };

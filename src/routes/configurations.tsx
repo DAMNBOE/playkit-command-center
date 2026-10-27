@@ -72,10 +72,16 @@ function ConfigManager() {
   const save = async () => {
     if (!selected) return;
     if (selected.format === "json") {
-      try { JSON.parse(draft); } catch (e) { notify("Invalid JSON", (e as Error).message); return; }
+      try { JSON.parse(draft); } catch (e) { fail("Invalid JSON", (e as Error).message); return; }
     }
     setSaving(true);
-    await getPlatform().writeConfigFile(selected.path, draft);
+    try {
+      await getPlatform().writeConfigFile(selected.path, draft);
+    } catch (e) {
+      setSaving(false);
+      fail("Could not save configuration", (e as Error).message);
+      return;
+    }
     update("configs", (cs) => cs.map((c) => c.id === selected.id ? { ...c, content: draft, modifiedAt: new Date().toISOString(),
       backups: [{ id: Math.random().toString(36).slice(2), label: "Auto backup before save", createdAt: new Date().toISOString(), content: c.content }, ...c.backups].slice(0, 10) } : c));
     update("games", (gs) => gs.map((g) => g.id === selected.gameId ? { ...g, lastModified: new Date().toISOString() } : g));

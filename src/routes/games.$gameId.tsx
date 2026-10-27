@@ -27,7 +27,7 @@ const fmtSize = (b: number) => (b > 1e6 ? `${(b / 1e6).toFixed(1)} MB` : b > 1e3
 
 function GameDetails() {
   const { gameId } = Route.useParams();
-  const { gameById, configs, presets, activity, update, hydrated, notify } = useStore();
+  const { gameById, configs, presets, activity, update, hydrated, fail } = useStore();
   const navigate = useNavigate();
   const { backup, exportFile } = useConfigActions();
   const [importOpen, setImportOpen] = useState(false);
@@ -36,7 +36,7 @@ function GameDetails() {
   const game = gameById(gameId);
 
   useEffect(() => {
-    if (game?.installed) getPlatform().listFiles(game.installPath).then(setFiles);
+    if (game?.installed) getPlatform().listFiles(game.installPath).then(setFiles).catch(() => setFiles([]));
     else setFiles([]);
   }, [game?.installPath, game?.installed]);
 
@@ -50,11 +50,11 @@ function GameDetails() {
   const gActivity = activity.filter((a) => a.gameId === game.id);
 
   const exportAll = () => {
-    if (!gConfigs.length) return notify("Nothing to export", "This game has no configurations yet.");
+    if (!gConfigs.length) return fail("Nothing to export", "This game has no configurations yet.");
     gConfigs.forEach(exportFile);
   };
   const backupAll = async () => {
-    if (!gConfigs.length) return notify("Nothing to back up", "This game has no configurations yet.");
+    if (!gConfigs.length) return fail("Nothing to back up", "This game has no configurations yet.");
     for (const c of gConfigs) await backup(c, "Game-wide backup");
   };
 
