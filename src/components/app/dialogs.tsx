@@ -90,7 +90,7 @@ const extFormat = (name: string): ConfigFile["format"] => {
   return "cfg";
 };
 
-export function ImportConfigDialog({ open, onOpenChange, defaultGameId, onImported }: { open: boolean; onOpenChange: (o: boolean) => void; defaultGameId?: string; onImported?: (id: string) => void }) {
+export function ImportConfigDialog({ open, onOpenChange, defaultGameId, onImported }: { open: boolean; onOpenChange: (o: boolean) => void; defaultGameId?: string | undefined; onImported?: (id: string) => void }) {
   const { games, update, log, notify } = useStore();
   const [gameId, setGameId] = useState(defaultGameId ?? "");
   const [file, setFile] = useState<{ name: string; content: string } | null>(null);
@@ -142,7 +142,7 @@ export function ImportConfigDialog({ open, onOpenChange, defaultGameId, onImport
   );
 }
 
-export function PresetDialog({ open, onOpenChange, preset, defaultGameId }: { open: boolean; onOpenChange: (o: boolean) => void; preset?: Preset | null; defaultGameId?: string }) {
+export function PresetDialog({ open, onOpenChange, preset, defaultGameId }: { open: boolean; onOpenChange: (o: boolean) => void; preset?: Preset | null; defaultGameId?: string | undefined }) {
   const { games, presets, update, log, notify } = useStore();
   const [name, setName] = useState("");
   const [gameId, setGameId] = useState("");

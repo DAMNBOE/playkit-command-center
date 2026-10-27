@@ -11,10 +11,10 @@ describe("download simulation", () => {
   });
   it("marks a download completed when it reaches 100%", () => {
     const out = tickDownloads([mk("a", "active", 99)], 2, () => 0.5);
-    expect(out[0].status).toBe("completed");
+    expect(out[0]!.status).toBe("completed");
   });
   it("does not advance paused downloads", () => {
     const out = tickDownloads([mk("a", "paused", 40)], 2, () => 0.5);
-    expect(out[0].progress).toBe(40);
+    expect(out[0]!.progress).toBe(40);
   });
 });

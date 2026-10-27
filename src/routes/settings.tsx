@@ -81,13 +81,13 @@ function SettingsPage() {
           {section === "Configurations" && <>
             <Item label="Automatic backups" desc="Back up a file before each save."><Switch checked={settings.autoBackup} onCheckedChange={(v) => set("autoBackup", v)} /></Item>
             <Item label={`Backups kept per file: ${settings.backupLimit}`} desc="Oldest backups are removed first.">
-              <Slider className="w-48" min={1} max={30} step={1} value={[settings.backupLimit]} onValueChange={([v]) => set("backupLimit", v)} />
+              <Slider className="w-48" min={1} max={30} step={1} value={[settings.backupLimit]} onValueChange={([v]) => set("backupLimit", v ?? 10)} />
             </Item>
           </>}
           {section === "Downloads" && <>
             <Item label="Download folder" desc="Where downloaded files are saved."><Input value={settings.downloadPath} onChange={(e) => set("downloadPath", e.target.value)} className="h-8 w-80 font-mono text-xs" /></Item>
             <Item label={`Concurrent downloads: ${settings.maxConcurrent}`} desc="Maximum downloads running at once.">
-              <Slider className="w-48" min={1} max={5} step={1} value={[settings.maxConcurrent]} onValueChange={([v]) => set("maxConcurrent", v)} />
+              <Slider className="w-48" min={1} max={5} step={1} value={[settings.maxConcurrent]} onValueChange={([v]) => set("maxConcurrent", v ?? 2)} />
             </Item>
           </>}
           {section === "Plugins" && <>
