@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { supabase } from "@/integrations/supabase/client";
 import { useState, type ReactNode } from "react";
 import { Check } from "lucide-react";
 import { useStore } from "@/lib/store";
@@ -26,7 +27,7 @@ export const Route = createFileRoute("/settings")({
   component: SettingsPage,
 });
 
-const SECTIONS = ["General", "Appearance", "Game Library", "Configurations", "Downloads", "Plugins", "About AfScripts"] as const;
+const SECTIONS = ["Account & Sync", "General", "Appearance", "Game Library", "Configurations", "Downloads", "Plugins", "About AfScripts"] as const;
 const ACCENTS: { v: Settings["accent"]; l: string; c: string }[] = [
   { v: "violet", l: "Violet", c: "oklch(0.606 0.219 293)" },
   { v: "blue", l: "Blue", c: "oklch(0.623 0.188 259.8)" },
@@ -35,8 +36,8 @@ const ACCENTS: { v: Settings["accent"]; l: string; c: string }[] = [
 ];
 
 function SettingsPage() {
-  const { settings, update, reset } = useStore();
-  const [section, setSection] = useState<(typeof SECTIONS)[number]>("General");
+  const { settings, update, reset, account, syncStatus } = useStore();
+  const [section, setSection] = useState<(typeof SECTIONS)[number]>("Account & Sync");
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) => update("settings", (s) => ({ ...s, [k]: v }));
 
   return (
@@ -49,6 +50,12 @@ function SettingsPage() {
       <div key={section} className="animate-fade-up min-w-0 max-w-2xl flex-1 rounded-lg border bg-card">
         <h2 className="border-b px-5 py-3 font-semibold">{section}</h2>
         <div className="divide-y">
+          {section === "Account & Sync" && (account ? <>
+            <Item label="Signed in" desc={account.email}><Button size="sm" variant="secondary" onClick={() => supabase.auth.signOut()}>Sign out</Button></Item>
+            <Item label="Sync status" desc="Library, configurations, presets and settings are saved to your account."><span className={cn("text-xs", syncStatus === "error" ? "text-destructive" : "text-muted-foreground")}>{{ off: "Off", syncing: "Saving…", synced: "Up to date", error: "Sync failed" }[syncStatus]}</span></Item>
+          </> : (
+            <Item label="Not signed in" desc="Sign in to keep your data safe and use it on other devices. Without an account, data stays in this browser only."><Button size="sm" asChild><Link to="/auth">Sign in</Link></Button></Item>
+          ))}
           {section === "General" && <>
             <Item label="Startup page" desc="Where AfScripts opens when launched.">
               <Select value={settings.startup} onValueChange={(v) => set("startup", v as Settings["startup"])}>
