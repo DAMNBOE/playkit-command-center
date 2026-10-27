@@ -1,32 +1,9 @@
+import type { PlatformService } from "./types";
+
 /**
- * Platform service abstraction.
- *
- * The browser build uses MockPlatform: every operation works on in-memory /
- * localStorage state and NEVER touches the real Windows filesystem.
- * When packaged with Tauri, implement TauriPlatform (calling `invoke()` on Rust
- * commands) and return it from getPlatform() when `window.__TAURI_INTERNALS__` exists.
+ * Browser-preview implementation. Works on an in-memory map only and NEVER
+ * touches the real Windows filesystem. All results are simulated.
  */
-export interface LocalFileEntry {
-  name: string;
-  path: string;
-  sizeBytes: number;
-  isDirectory: boolean;
-  modifiedAt: string;
-}
-
-export interface PlatformService {
-  readonly kind: "mock" | "tauri";
-  readConfigFile(path: string): Promise<string | null>;
-  writeConfigFile(path: string, content: string): Promise<void>;
-  listFiles(dir: string): Promise<LocalFileEntry[]>;
-  createBackup(path: string, content: string): Promise<{ backupPath: string }>;
-  restoreBackup(backupPath: string): Promise<string | null>;
-  detectInstallPath(appId: number, name: string): Promise<string | null>;
-  startDownload(id: string, url: string): Promise<void>;
-  pauseDownload(id: string): Promise<void>;
-  cancelDownload(id: string): Promise<void>;
-}
-
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const memFs = new Map<string, string>();
 
@@ -59,11 +36,5 @@ export const MockPlatform: PlatformService = {
   async startDownload() { await wait(50); },
   async pauseDownload() { await wait(50); },
   async cancelDownload() { await wait(50); },
+  async windowAction() { return false; },
 };
-
-export function getPlatform(): PlatformService {
-  // Future: if (typeof window !== "undefined" && "__TAURI_INTERNALS__" in window) return TauriPlatform;
-  return MockPlatform;
-}
-
-export const isNative = () => getPlatform().kind !== "mock";
