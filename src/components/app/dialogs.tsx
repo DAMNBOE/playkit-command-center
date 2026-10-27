@@ -11,7 +11,9 @@ import type { ConfigFile, Preset } from "@/lib/types";
 import { getPlatform } from "@/services/platform";
 import { Loader2, Upload } from "lucide-react";
 
-function FieldError({ msg }: { msg?: string }) {
+type Errs = Partial<Record<"name" | "appId" | "path" | "gameId" | "description", string>>;
+
+function FieldError({ msg }: { msg?: string | undefined }) {
   return msg ? <p className="text-[11px] text-destructive">{msg}</p> : null;
 }
 
@@ -22,7 +24,7 @@ export function AddGameDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   const [installed, setInstalled] = useState(true);
   const [path, setPath] = useState("");
   const [detecting, setDetecting] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Errs>({});
 
   useEffect(() => { if (open) { setName(""); setAppId(""); setPath(""); setErrors({}); setInstalled(true); } }, [open]);
 
@@ -34,7 +36,7 @@ export function AddGameDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   };
 
   const submit = () => {
-    const e: Record<string, string> = {};
+    const e: Errs = {};
     if (name.trim().length < 2) e.name = "Name must be at least 2 characters";
     const id = Number(appId);
     if (!/^\d{1,8}$/.test(appId)) e.appId = "App ID must be a number (1–8 digits)";
@@ -145,7 +147,7 @@ export function PresetDialog({ open, onOpenChange, preset, defaultGameId }: { op
   const [name, setName] = useState("");
   const [gameId, setGameId] = useState("");
   const [description, setDescription] = useState("");
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Errs>({});
 
   useEffect(() => {
     if (open) {
@@ -154,7 +156,7 @@ export function PresetDialog({ open, onOpenChange, preset, defaultGameId }: { op
   }, [open, preset, defaultGameId]);
 
   const submit = () => {
-    const e: Record<string, string> = {};
+    const e: Errs = {};
     const n = name.trim();
     if (n.length < 3) e.name = "Name must be at least 3 characters";
     else if (n.length > 48) e.name = "Name must be 48 characters or fewer";
