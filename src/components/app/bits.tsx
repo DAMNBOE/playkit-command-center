@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import logoMark from "@/assets/logo-monogram.png";
+import logoMark from "@/assets/logo-segmented.png";
 import type { LucideIcon } from "lucide-react";
 import {
   Archive, Download, FileCog, FileDown, FileUp, Gamepad2, History, Layers, Puzzle,
