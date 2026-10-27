@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useConfigActions } from "@/lib/config-actions";
-import { getPlatform, type LocalFileEntry } from "@/services/platform";
+import { getEnvironment, getServices, type LocalFileEntry } from "@/services";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/games/$gameId")({
@@ -33,10 +33,12 @@ function GameDetails() {
   const [importOpen, setImportOpen] = useState(false);
   const [presetOpen, setPresetOpen] = useState(false);
   const [files, setFiles] = useState<LocalFileEntry[] | null>(null);
+  const [filesError, setFilesError] = useState<string | null>(null);
   const game = gameById(gameId);
 
   useEffect(() => {
-    if (game?.installed) getPlatform().listFiles(game.installPath).then(setFiles).catch(() => setFiles([]));
+    setFilesError(null);
+    if (game?.installed) getServices().library.listGameFiles(game.installPath).then(setFiles).catch((e: Error) => { setFilesError(e.message); setFiles([]); });
     else setFiles([]);
   }, [game?.installPath, game?.installed]);
 
@@ -133,9 +135,11 @@ function GameDetails() {
         </TabsContent>
 
         <TabsContent value="files" className="mt-3">
-          <Panel title={<span className="font-mono text-xs">{game.installPath}</span>} action={<span className="text-[10px] text-muted-foreground">Simulated listing</span>}>
+          <Panel title={<span className="font-mono text-xs">{game.installPath}</span>} action={<span className="text-[10px] text-muted-foreground" suppressHydrationWarning>{getEnvironment().label}</span>}>
             {files === null ? (
               <div className="space-y-2 p-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-6" />)}</div>
+            ) : filesError ? (
+              <EmptyState icon={Folder} title="Local files unavailable" description={filesError} />
             ) : files.length === 0 ? (
               <EmptyState icon={Folder} title="Game not installed" description="Install the game to browse its local files." />
             ) : (

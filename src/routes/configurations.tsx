@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { getPlatform } from "@/services/platform";
+import { getServices } from "@/services";
 import { cn } from "@/lib/utils";
 
 type Search = { file?: string | undefined; game?: string | undefined };
@@ -76,7 +76,7 @@ function ConfigManager() {
     }
     setSaving(true);
     try {
-      await getPlatform().writeConfigFile(selected.path, draft);
+      await getServices().configs.write(selected.path, draft);
     } catch (e) {
       setSaving(false);
       fail("Could not save configuration", (e as Error).message);

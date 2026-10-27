@@ -17,7 +17,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
-import { getPlatform, type WindowAction } from "@/services/platform";
+import { getServices, type WindowAction } from "@/services";
+import { EnvironmentBadge } from "./EnvironmentBadge";
 
 export const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -102,15 +103,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <kbd className="ml-auto hidden rounded border bg-muted px-1.5 font-mono text-[10px] lg:inline">Ctrl K</kbd>
             </button>
             <div className="no-drag flex items-center gap-1">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="hidden items-center gap-1.5 whitespace-nowrap rounded-md border px-2 py-1 text-[11px] text-muted-foreground lg:flex">
-                    <span className="size-1.5 animate-pulse rounded-full bg-success" />
-                    {getPlatform().kind === "mock" ? "Preview mode" : "Native"}
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>Running in browser preview — file operations are simulated until the Windows app is connected.</TooltipContent>
-              </Tooltip>
+              <EnvironmentBadge />
               <Popover>
                 <PopoverTrigger asChild>
                   <button aria-label="Notifications" className="relative grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground">
@@ -239,7 +232,7 @@ function ProfileMenu({ collapsed }: { collapsed: boolean }) {
 
 function WindowControls() {
   const msg = (action: WindowAction) => async () => {
-    const ok = await getPlatform().windowAction(action).catch(() => false);
+    const ok = await getServices().window.action(action).catch(() => false);
     if (!ok) toast("Window controls work in the packaged Windows app.");
   };
   return (
