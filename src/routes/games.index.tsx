@@ -51,7 +51,7 @@ function GamesLibrary() {
         }
         return next;
       });
-      log("scan", `Steam scan found ${found.length} installed games`);
+      log("game", `Steam scan found ${found.length} installed games`);
       notify("Steam library scanned", `${found.length} installed games found${added ? `, ${added} added` : ""}`);
     } catch (e) { fail("Steam scan failed", (e as Error).message); }
     finally { setScanning(false); }
