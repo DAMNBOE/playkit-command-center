@@ -1,3 +1,4 @@
+import { parseAppId } from "@/lib/game-visibility";
 import { useEffect, useState } from "react";
 import { Check, Loader2, Plus, Search, X } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
@@ -15,7 +16,7 @@ export function GameIdentitySearch() {
   const term = gameQuery.trim();
 
   useEffect(() => {
-    if (term.length < 2) { setResults([]); setStatus("idle"); return; }
+    if (term.length < 2 || !parseAppId(term)) { setResults([]); setStatus("idle"); return; }
     let cancelled = false;
     setStatus("loading");
     const t = setTimeout(() => {
@@ -41,10 +42,10 @@ export function GameIdentitySearch() {
     <div className="mb-4">
       <div role="search" className="relative flex w-full items-center">
         <Search className="pointer-events-none absolute left-3 size-4 text-muted-foreground" />
-        <Input aria-label="Search games by name or Steam App ID" placeholder="Game name or Steam App ID" value={gameQuery} onChange={(e) => setGameQuery(e.target.value)} className="pl-9 pr-10" />
+        <Input aria-label="Search games by Steam App ID" placeholder="Steam App ID (e.g. 730)" inputMode="numeric" value={gameQuery} onChange={(e) => setGameQuery(e.target.value)} className="pl-9 pr-10" />
         {gameQuery && <Button variant="ghost" size="icon" aria-label="Clear game search" className="absolute right-1 size-7" onClick={() => setGameQuery("")}><X className="size-4" /></Button>}
       </div>
-      {term.length >= 2 && (
+      {term.length >= 2 && parseAppId(term) && (
         <div className="mt-2 rounded-lg border border-border bg-card p-2">
           <p className="px-1 pb-2 text-xs text-muted-foreground">Steam store results</p>
           {status === "loading" && <p className="flex items-center gap-2 px-1 py-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" />Searching Steam…</p>}
