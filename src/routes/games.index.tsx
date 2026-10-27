@@ -1,7 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Gamepad2, LayoutGrid, List, Plus, Search, Star } from "lucide-react";
-import { useStore, fmtDate, timeAgo } from "@/lib/store";
+import { RefreshCw, Gamepad2, LayoutGrid, List, Plus, Search, Star } from "lucide-react";
+import { useStore, fmtDate, timeAgo, uid } from "@/lib/store";
+import { getServices, isDesktopRuntime } from "@/services";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ConfigBadge, EmptyState, GameCover, InstallBadge, PageToolbar } from "@/components/app/bits";
 import { AddGameDialog } from "@/components/app/dialogs";
 import { Button } from "@/components/ui/button";
@@ -28,7 +30,32 @@ type Sort = "recent" | "name" | "appId" | "size";
 type Filter = "all" | "installed" | "not-installed" | "configured" | "unconfigured" | "favorites";
 
 function GamesLibrary() {
-  const { games, update, hydrated } = useStore();
+  const { games, update, hydrated, settings, log, notify, fail } = useStore();
+  const [scanning, setScanning] = useState(false);
+  const desktop = isDesktopRuntime();
+
+  const scanSteam = async () => {
+    setScanning(true);
+    try {
+      const found = await getServices().library.scanLibrary(settings.libraryPath);
+      let added = 0;
+      update("games", (gs) => {
+        const byApp = new Map(gs.map((g) => [g.appId, g]));
+        const next = gs.map((g) => {
+          const f = found.find((x) => x.appId === g.appId);
+          return f ? { ...g, installed: true, installPath: f.installPath, sizeGb: +(f.sizeBytes / 1073741824).toFixed(1) } : g;
+        });
+        for (const f of found) if (!byApp.has(f.appId)) {
+          added++;
+          next.push({ id: uid(), name: f.name, appId: f.appId, installed: true, configStatus: "none", lastModified: new Date().toISOString(), installPath: f.installPath, sizeGb: +(f.sizeBytes / 1073741824).toFixed(1), genre: "Uncategorized", hue: (f.appId * 37) % 360, favorite: false, developer: "—" });
+        }
+        return next;
+      });
+      log("game", `Steam scan found ${found.length} installed games`);
+      notify("Steam library scanned", `${found.length} installed games found${added ? `, ${added} added` : ""}`);
+    } catch (e) { fail("Steam scan failed", (e as Error).message); }
+    finally { setScanning(false); }
+  };
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<Sort>("recent");
   const [filter, setFilter] = useState<Filter>("all");
@@ -107,6 +134,10 @@ function GamesLibrary() {
             <ToggleGroupItem value="grid" aria-label="Grid view" className="h-7 w-7"><LayoutGrid className="size-3.5" /></ToggleGroupItem>
             <ToggleGroupItem value="list" aria-label="List view" className="h-7 w-7"><List className="size-3.5" /></ToggleGroupItem>
           </ToggleGroup>
+          <Tooltip>
+            <TooltipTrigger asChild><span><Button size="sm" variant="secondary" onClick={scanSteam} disabled={!desktop || scanning}><RefreshCw className={cn("size-4", scanning && "animate-spin")} /> {scanning ? "Scanning…" : "Scan Steam"}</Button></span></TooltipTrigger>
+            {!desktop && <TooltipContent>Available in the AfScripts Windows app</TooltipContent>}
+          </Tooltip>
           <Button size="sm" onClick={() => setAddOpen(true)}><Plus className="size-4" /> Add game</Button>
         </div>
       </PageToolbar>

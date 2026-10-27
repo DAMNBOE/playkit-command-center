@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Input } from "@/components/ui/input";
+import { uid } from "@/lib/store";
 import { AlertTriangle, CheckCircle2, Clock, Download as DlIcon, FlaskConical, Pause, Play, RotateCw, Trash2, X } from "lucide-react";
 import { useStore, timeAgo } from "@/lib/store";
 import { EmptyState, Panel } from "@/components/app/bits";
@@ -7,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { getServices } from "@/services";
+import { getServices, isDesktopRuntime } from "@/services";
 import type { Download, DownloadStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { tickDownloads } from "@/lib/downloads";
@@ -37,7 +39,39 @@ const fmtMb = (mb: number) => (mb >= 1024 ? `${(mb / 1024).toFixed(2)} GB` : `${
 function Downloads() {
   const { downloads, update, settings, log, notify, fail, gameById } = useStore();
 
+  const desktop = isDesktopRuntime();
+  const [url, setUrl] = useState("");
+
+  // Desktop: real progress events from the native downloader.
   useEffect(() => {
+    if (!desktop) return;
+    return getServices().downloads.onProgress((p) => {
+      update("downloads", (ds) => ds.map((d) => {
+        if (d.id !== p.id) return d;
+        const sizeMb = p.total ? p.total / 1048576 : d.sizeMb;
+        if (p.status === "completed") { setTimeout(() => { notify("Download complete", p.path); log("download", `Downloaded ${d.name} to ${p.path}`, d.gameId); }); return { ...d, status: "completed", progress: 100, speedMbps: 0, sizeMb, savedTo: p.path }; }
+        if (p.status === "failed") { setTimeout(() => fail("Download failed", p.error ?? d.name)); return { ...d, status: "failed", speedMbps: 0, error: p.error ?? undefined }; }
+        if (p.status === "cancelled") return d;
+        const prevMb = (d.progress / 100) * d.sizeMb;
+        const nowMb = p.received / 1048576;
+        return { ...d, status: d.status === "paused" ? "paused" : "active", sizeMb, progress: p.total ? (p.received / p.total) * 100 : 0, speedMbps: Math.max(0, (nowMb - prevMb) / 0.3) };
+      }));
+    });
+  }, [desktop, update, notify, log, fail]);
+
+  const addDownload = async () => {
+    const u = url.trim();
+    if (!/^https?:\/\//.test(u)) { fail("Enter a valid http(s) link"); return; }
+    const id = uid();
+    const name = decodeURIComponent(u.split("?")[0]!.split("/").pop() || "download");
+    try { await getServices().downloads.start(id, u); }
+    catch (e) { fail("Could not start download", (e as Error).message); return; }
+    update("downloads", (ds) => [{ id, name, url: u, sizeMb: 0, progress: 0, speedMbps: 0, status: "active", addedAt: new Date().toISOString() }, ...ds]);
+    setUrl("");
+  };
+
+  useEffect(() => {
+    if (desktop) return;
     const t = setInterval(() => {
       update("downloads", (ds) => {
         const next = tickDownloads(ds, settings.maxConcurrent);
@@ -46,20 +80,32 @@ function Downloads() {
       });
     }, 1000);
     return () => clearInterval(t);
-  }, [update, settings.maxConcurrent, notify, log]);
+  }, [desktop, update, settings.maxConcurrent, notify, log]);
 
   const set = (id: string, patch: Partial<Download>) => update("downloads", (ds) => ds.map((d) => (d.id === id ? { ...d, ...patch } : d)));
   const pause = async (d: Download) => {
     try { await getServices().downloads.pause(d.id); set(d.id, { status: "paused", speedMbps: 0 }); }
     catch (e) { fail("Could not pause download", (e as Error).message); }
   };
-  const resume = (d: Download) => set(d.id, { status: "queued" });
+  const resume = async (d: Download) => {
+    if (desktop && d.url) {
+      try { await getServices().downloads.start(d.id, d.url); set(d.id, { status: "active" }); }
+      catch (e) { fail("Could not resume download", (e as Error).message); }
+      return;
+    }
+    set(d.id, { status: "queued" });
+  };
   const cancel = async (d: Download) => {
     try { await getServices().downloads.cancel(d.id); }
     catch (e) { fail("Could not cancel download", (e as Error).message); return; }
     update("downloads", (ds) => ds.filter((x) => x.id !== d.id)); notify("Download cancelled", d.name);
   };
-  const retry = (d: Download) => { set(d.id, { status: "queued", progress: 0 }); log("download", `Retrying download: ${d.name}`, d.gameId); };
+  const retry = async (d: Download) => {
+    if (desktop && d.url) {
+      try { await getServices().downloads.start(d.id, d.url); set(d.id, { status: "active", progress: 0, error: undefined }); }
+      catch (e) { fail("Could not retry download", (e as Error).message); }
+      return;
+    } set(d.id, { status: "queued", progress: 0 }); log("download", `Retrying download: ${d.name}`, d.gameId); };
   const clearCompleted = () => update("downloads", (ds) => ds.filter((d) => d.status !== "completed"));
 
   const groups = {
@@ -102,10 +148,17 @@ function Downloads() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-2.5 text-xs">
-        <FlaskConical className="size-4 shrink-0 text-warning" />
-        <span><strong className="font-semibold">Simulated downloads.</strong> Progress shown here is a preview simulation — nothing is downloaded to your PC until the Windows app is connected.</span>
-      </div>
+      {desktop ? (
+        <form onSubmit={(e) => { e.preventDefault(); void addDownload(); }} className="flex flex-col gap-2 rounded-lg border bg-card p-3 sm:flex-row">
+          <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Paste a direct file link (https://…) — saved to Downloads\\AfScripts" className="h-9 font-mono text-xs" />
+          <Button type="submit" size="sm" className="h-9"><DlIcon className="size-4" /> Download</Button>
+        </form>
+      ) : (
+        <div className="flex items-center gap-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-2.5 text-xs">
+          <FlaskConical className="size-4 shrink-0 text-warning" />
+          <span><strong className="font-semibold">Simulated downloads.</strong> Real downloads to your PC work in the AfScripts Windows app. The items below are a preview.</span>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[["Active", groups.active.length], ["Queued", groups.queued.length], ["Completed", groups.completed.length], ["Total speed", `${totalSpeed.toFixed(1)} MB/s`]].map(([k, v]) => (
           <div key={String(k)} className="rounded-lg border bg-card p-3.5"><p className="text-xs text-muted-foreground">{k}</p><p className="mt-1 text-xl font-bold tabular-nums">{v}</p></div>

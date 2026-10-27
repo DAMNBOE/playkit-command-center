@@ -62,7 +62,15 @@ export interface PresetService {
   apply(gameId: string, files: PresetFile[]): Promise<void>;
 }
 
+export interface DownloadProgress {
+  id: string; received: number; total: number;
+  status: "active" | "completed" | "cancelled" | "failed";
+  path: string; error?: string | null;
+}
+
 export interface DownloadService {
+  /** Subscribe to real progress events (desktop). Returns an unsubscribe fn. */
+  onProgress(cb: (p: DownloadProgress) => void): () => void;
   start(id: string, url: string): Promise<void>;
   pause(id: string): Promise<void>;
   cancel(id: string): Promise<void>;

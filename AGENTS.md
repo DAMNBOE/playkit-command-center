@@ -10,7 +10,8 @@
 <!-- LOVABLE:END -->
 
 ## Architecture rules
-- All app state lives in `src/lib/store.tsx` (React context persisted to localStorage) — single source until a backend is added.
+- All app state lives in `src/lib/store.tsx` (React context, cached in localStorage); signed-in users' whole state is mirrored as one JSON row in `public.user_state` — keeps one source of truth with simple sync.
+- Real Windows file/Steam/download logic lives only in `src-tauri/src/commands.rs`; config read/write is restricted to absolute paths with text config extensions, and backups go to %APPDATA%\AfScripts\backups — limits what the app can touch on disk.
 - Native/file operations go only through `src/services/` (`getServices()` → browser adapter in `mock/`, Tauri adapter in `tauri/` when `__TAURI_INTERNALS__` exists); command names in `commands.ts` must match `src-tauri/src/commands.rs`. Browser adapter throws `DesktopOnlyError` rather than faking files or Steam detection.
 - Demo/sample content lives only in `src/mocks/` so it can be dropped once real native data is wired in.
 - Errors use `fail()` from the store (always shown); `notify()` is only called after an operation has actually completed.

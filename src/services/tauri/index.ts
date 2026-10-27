@@ -1,5 +1,5 @@
 import { NATIVE_COMMANDS as C } from "../commands";
-import type { AppServices } from "../types";
+import type { AppServices, DownloadProgress } from "../types";
 
 /**
  * Desktop adapter. Each method maps 1:1 to a Rust command in NATIVE_COMMANDS.
@@ -36,6 +36,11 @@ export const tauriServices: AppServices = {
   },
   presets: { apply: (gameId, files) => invoke(C.applyPreset, { gameId, files }) },
   downloads: {
+    onProgress: (cb) => {
+      const w = window as unknown as { __TAURI__?: { event: { listen: (e: string, h: (ev: { payload: DownloadProgress }) => void) => Promise<() => void> } } };
+      const p = w.__TAURI__?.event.listen("download://progress", (ev) => cb(ev.payload));
+      return () => { void p?.then((un) => un()); };
+    },
     start: (id, url) => invoke(C.startDownload, { id, url }),
     pause: (id) => invoke(C.pauseDownload, { id }),
     cancel: (id) => invoke(C.cancelDownload, { id }),
