@@ -41,7 +41,7 @@ const fmtBadge: Record<string, string> = { ini: "text-info", cfg: "text-primary"
 function ConfigManager() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/configurations" });
-  const { configs, games, gameById, update, log, notify } = useStore();
+  const { configs, games, gameById, update, log, notify, fail } = useStore();
   const { backup, restore, exportFile } = useConfigActions();
   const [q, setQ] = useState("");
   const gameFilter = search.game ?? "all";

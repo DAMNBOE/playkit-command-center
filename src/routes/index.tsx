@@ -114,7 +114,7 @@ function Dashboard() {
             <Meter label="Plugins enabled" value={(plugins.filter((p) => p.enabled).length / Math.max(1, plugins.length)) * 100} detail={`${plugins.filter((p) => p.enabled).length} / ${plugins.length}`} />
             <div className="space-y-1.5 border-t pt-3 text-muted-foreground">
               <Row icon={Cpu} k="Platform" v="Windows 11 · x64 (simulated)" />
-              <Row icon={CheckCircle2} k="Steam library" v="Detected" />
+              <Row icon={CheckCircle2} k="Steam library" v="Detected (simulated)" />
               <Row icon={FileCog} k="Last backup" v={timeAgo(activity.find((a) => a.type === "backup")?.at ?? new Date().toISOString())} />
             </div>
           </div>
