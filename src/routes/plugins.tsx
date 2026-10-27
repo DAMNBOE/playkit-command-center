@@ -45,10 +45,10 @@ function Plugins() {
   return (
     <div>
       <PageToolbar>
-        <div className="relative w-64"><Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" /><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search plugins" className="h-8 pl-8 text-xs" /></div>
+        <div className="relative w-full sm:w-64"><Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" /><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search plugins" className="h-8 pl-8 text-xs" /></div>
         <Select value={status} onValueChange={setStatus}><SelectTrigger className="h-8 w-36 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent><SelectItem value="all">Any status</SelectItem><SelectItem value="enabled">Enabled</SelectItem><SelectItem value="disabled">Disabled</SelectItem></SelectContent></Select>
-        <Select value={cat} onValueChange={setCat}><SelectTrigger className="h-8 w-40 text-xs"><SelectValue /></SelectTrigger>
+        <Select value={cat} onValueChange={setCat}><SelectTrigger className="h-8 w-[calc(50%-4px)] text-xs sm:w-40"><SelectValue /></SelectTrigger>
           <SelectContent><SelectItem value="all">All categories</SelectItem>{["Utility", "Visual", "Performance", "Integration"].map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
         <span className="ml-auto text-xs text-muted-foreground">{plugins.filter((p) => p.enabled).length} of {plugins.length} enabled</span>
       </PageToolbar>
@@ -66,7 +66,7 @@ function Plugins() {
                 <Switch checked={p.enabled} onCheckedChange={() => toggle(p)} aria-label={`Toggle ${p.name}`} />
               </div>
               <p className="mt-3 line-clamp-2 flex-1 text-xs text-muted-foreground">{p.description}</p>
-              <div className="mt-3 flex items-center gap-1 border-t pt-3">
+              <div className="mt-3 flex flex-wrap items-center gap-1 border-t pt-3">
                 <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{p.category}</span>
                 <span className={cn("text-[11px]", p.enabled ? "text-success" : "text-muted-foreground")}>· {p.enabled ? "Enabled" : "Disabled"}</span>
                 <Button size="sm" variant="ghost" className="ml-auto h-7 text-xs" onClick={() => setDetails(p)}><Info className="size-3.5" /> Details</Button>
@@ -80,7 +80,7 @@ function Plugins() {
       <Dialog open={!!details} onOpenChange={(o) => !o && setDetails(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>{details?.name}</DialogTitle><DialogDescription>{details?.description}</DialogDescription></DialogHeader>
-          <dl className="grid grid-cols-[110px_1fr] gap-y-2 text-xs">
+          <dl className="grid grid-cols-[110px_minmax(0,1fr)] gap-y-2 text-xs">
             <dt className="text-muted-foreground">Version</dt><dd>{details?.version}</dd>
             <dt className="text-muted-foreground">Author</dt><dd>{details?.author}</dd>
             <dt className="text-muted-foreground">Category</dt><dd>{details?.category}</dd>

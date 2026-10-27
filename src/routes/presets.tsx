@@ -41,7 +41,7 @@ function Presets() {
   return (
     <div>
       <PageToolbar>
-        <div className="relative w-64"><Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" /><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search presets" className="h-8 pl-8 text-xs" /></div>
+        <div className="relative w-full sm:w-64"><Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" /><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search presets" className="h-8 pl-8 text-xs" /></div>
         <Select value={game} onValueChange={setGame}>
           <SelectTrigger className="h-8 w-48 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent><SelectItem value="all">All games</SelectItem>{games.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
@@ -53,18 +53,18 @@ function Presets() {
         <div className="rounded-lg border bg-card"><EmptyState icon={Layers} title={presets.length ? "No presets match" : "No presets yet"} description="Presets save a set of configuration values for quick reuse." action={<Button size="sm" onClick={() => { setEditing(null); setOpen(true); }}>Create preset</Button>} /></div>
       ) : (
         <div className="overflow-hidden rounded-lg border bg-card">
-          <div className="grid grid-cols-[1.3fr_1fr_2fr_110px_110px_40px] gap-3 border-b px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          <div className="hidden md:grid grid-cols-[1.3fr_1fr_2fr_110px_110px_40px] gap-3 border-b px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
             <span>Preset</span><span>Game</span><span>Description</span><span>Created</span><span>Updated</span><span />
           </div>
           {list.map((p) => {
             const g = gameById(p.gameId);
             return (
-              <div key={p.id} className="grid grid-cols-[1.3fr_1fr_2fr_110px_110px_40px] items-center gap-3 border-b px-4 py-2.5 last:border-0 hover:bg-accent/30">
-                <span className="flex items-center gap-2 font-medium"><Layers className="size-3.5 text-primary" />{p.name}</span>
-                {g ? <Link to="/games/$gameId" params={{ gameId: g.id }} className="flex items-center gap-2 truncate text-xs hover:text-primary"><GameCover game={g} className="h-5 w-7 shrink-0 [&>div:nth-child(3)]:hidden" />{g.name}</Link> : <span className="text-xs text-muted-foreground">Removed game</span>}
-                <span className="truncate text-xs text-muted-foreground">{p.description || "—"}</span>
-                <span className="text-xs text-muted-foreground">{fmtDate(p.createdAt)}</span>
-                <span className="text-xs text-muted-foreground">{fmtDate(p.updatedAt)}</span>
+              <div key={p.id} className="grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[1.3fr_1fr_2fr_110px_110px_40px] items-center gap-3 border-b px-4 py-2.5 last:border-0 hover:bg-accent/30">
+                <span className="min-w-0"><span className="flex items-center gap-2 font-medium"><Layers className="size-3.5 shrink-0 text-primary" /><span className="truncate">{p.name}</span></span><span className="block truncate pl-5.5 text-[11px] text-muted-foreground md:hidden">{g?.name ?? "Removed game"} · {fmtDate(p.updatedAt)}</span></span>
+                {g ? <Link to="/games/$gameId" params={{ gameId: g.id }} className="hidden items-center gap-2 truncate text-xs hover:text-primary md:flex"><GameCover game={g} className="h-5 w-7 shrink-0 [&>div:nth-child(3)]:hidden" />{g.name}</Link> : <span className="hidden text-xs text-muted-foreground md:inline">Removed game</span>}
+                <span className="hidden truncate text-xs text-muted-foreground md:block">{p.description || "—"}</span>
+                <span className="hidden text-xs text-muted-foreground md:block">{fmtDate(p.createdAt)}</span>
+                <span className="hidden text-xs text-muted-foreground md:block">{fmtDate(p.updatedAt)}</span>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild><Button size="icon" variant="ghost" className="size-7" aria-label="Preset actions"><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger>
                   <DropdownMenuContent align="end">

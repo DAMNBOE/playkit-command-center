@@ -41,7 +41,7 @@ const fmtBadge: Record<string, string> = { ini: "text-info", cfg: "text-primary"
 function ConfigManager() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/configurations" });
-  const { configs, games, gameById, update, log, notify } = useStore();
+  const { configs, games, gameById, update, log, notify, fail } = useStore();
   const { backup, restore, exportFile } = useConfigActions();
   const [q, setQ] = useState("");
   const gameFilter = search.game ?? "all";
@@ -72,10 +72,16 @@ function ConfigManager() {
   const save = async () => {
     if (!selected) return;
     if (selected.format === "json") {
-      try { JSON.parse(draft); } catch (e) { notify("Invalid JSON", (e as Error).message); return; }
+      try { JSON.parse(draft); } catch (e) { fail("Invalid JSON", (e as Error).message); return; }
     }
     setSaving(true);
-    await getPlatform().writeConfigFile(selected.path, draft);
+    try {
+      await getPlatform().writeConfigFile(selected.path, draft);
+    } catch (e) {
+      setSaving(false);
+      fail("Could not save configuration", (e as Error).message);
+      return;
+    }
     update("configs", (cs) => cs.map((c) => c.id === selected.id ? { ...c, content: draft, modifiedAt: new Date().toISOString(),
       backups: [{ id: Math.random().toString(36).slice(2), label: "Auto backup before save", createdAt: new Date().toISOString(), content: c.content }, ...c.backups].slice(0, 10) } : c));
     update("games", (gs) => gs.map((g) => g.id === selected.gameId ? { ...g, lastModified: new Date().toISOString() } : g));
@@ -107,9 +113,10 @@ function ConfigManager() {
   const diff = compareOpen && selected ? diffLines(compareContent, draft) : [];
 
   return (
-    <div className="flex h-[calc(100vh-56px-40px)] min-h-[560px] overflow-hidden rounded-lg border bg-card">
+    <div className="flex flex-col overflow-hidden rounded-lg border bg-card xl:h-[calc(100vh-56px-40px)] xl:min-h-[560px] xl:flex-row">
+      <div className="flex min-w-0 flex-1 flex-col md:h-[calc(100vh-56px-40px)] md:min-h-[560px] md:flex-row xl:h-auto xl:min-h-0">
       {/* File list */}
-      <div className="flex w-72 shrink-0 flex-col border-r">
+      <div className="flex w-full shrink-0 flex-col border-b md:w-72 md:border-b-0 md:border-r">
         <div className="space-y-2 border-b p-3">
           <div className="relative"><Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" /><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter files" className="h-8 pl-8 text-xs" /></div>
           <Select value={gameFilter} onValueChange={(v) => navigate({ search: { game: v === "all" ? undefined : v } })}>
@@ -117,7 +124,7 @@ function ConfigManager() {
             <SelectContent><SelectItem value="all">All games</SelectItem>{games.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
           </Select>
         </div>
-        <div className="flex-1 overflow-auto p-1.5">
+        <div className="max-h-56 flex-1 overflow-auto p-1.5 md:max-h-none">
           {list.length === 0 && <EmptyState icon={FileCode2} title="No files" description="Import a configuration to get started." />}
           {list.map((c) => (
             <button key={c.id} onClick={() => select(c.id)} className={cn("flex w-full items-start gap-2.5 rounded-md px-2.5 py-2 text-left", selected?.id === c.id ? "bg-primary/12 ring-1 ring-primary/30" : "hover:bg-accent/50")}>
@@ -134,10 +141,10 @@ function ConfigManager() {
 
       {/* Editor */}
       {selected ? (
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex items-center gap-1 border-b px-3 py-2">
-            <div className="mr-auto min-w-0">
-              <p className="flex items-center gap-2 font-mono text-[13px] font-semibold">{selected.name}{dirty && <span className="size-1.5 rounded-full bg-warning" title="Unsaved changes" />}</p>
+        <div className="flex min-h-[420px] min-w-0 flex-1 flex-col">
+          <div className="flex flex-wrap items-center gap-1 border-b px-3 py-2">
+            <div className="mr-auto min-w-0 basis-full sm:basis-0 sm:flex-1">
+              <p className="flex min-w-0 items-center gap-2 truncate font-mono text-[13px] font-semibold">{selected.name}{dirty && <span className="size-1.5 rounded-full bg-warning" title="Unsaved changes" />}</p>
               <p className="truncate font-mono text-[10px] text-muted-foreground">{selected.path}</p>
             </div>
             <ToolBtn label="Revert changes" icon={Undo2} disabled={!dirty} onClick={() => setDraft(selected.content)} />
@@ -168,10 +175,11 @@ function ConfigManager() {
       ) : (
         <div className="grid flex-1 place-items-center"><EmptyState icon={FileCode2} title="Select a configuration" description="Choose a file from the list to view and edit it." /></div>
       )}
+      </div>
 
       {/* Details */}
       {selected && (
-        <div className="hidden w-64 shrink-0 flex-col border-l xl:flex">
+        <div className="flex w-full shrink-0 flex-col border-t xl:w-64 xl:border-l xl:border-t-0">
           <div className="border-b p-3">
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">File details</p>
             <dl className="space-y-1.5 text-xs">
@@ -182,7 +190,7 @@ function ConfigManager() {
           </div>
           <div className="flex min-h-0 flex-1 flex-col p-3">
             <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"><History className="size-3" /> Backups ({selected.backups.length})</p>
-            <div className="flex-1 space-y-1.5 overflow-auto">
+            <div className="max-h-72 flex-1 space-y-1.5 overflow-auto xl:max-h-none">
               {selected.backups.length === 0 && <p className="text-xs text-muted-foreground">No backups yet.</p>}
               {selected.backups.map((b) => (
                 <div key={b.id} className="group rounded-md border bg-background/40 p-2">

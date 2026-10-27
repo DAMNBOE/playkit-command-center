@@ -1,4 +1,8 @@
-import type { Activity, ConfigFile, Download, Game, Plugin, Preset, Settings } from "./types";
+/**
+ * MOCK DATA — demo content for the browser preview only.
+ * Real data will come from PlatformService (Tauri) once the Windows app is packaged.
+ */
+import type { Activity, ConfigFile, Download, Game, Plugin, Preset, Settings } from "@/lib/types";
 
 const d = (daysAgo: number, h = 0) => new Date(Date.now() - daysAgo * 864e5 - h * 36e5).toISOString();
 

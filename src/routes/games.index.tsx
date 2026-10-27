@@ -77,12 +77,12 @@ function GamesLibrary() {
       )}
 
       <PageToolbar>
-        <div className="relative w-64">
+        <div className="relative w-full sm:w-64">
           <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, App ID, genre" className="h-8 pl-8 text-xs" />
         </div>
         <Select value={filter} onValueChange={(v) => setFilter(v as Filter)}>
-          <SelectTrigger className="h-8 w-40 text-xs"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-8 w-[calc(50%-4px)] text-xs sm:w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All games</SelectItem>
             <SelectItem value="favorites">Favorites</SelectItem>
@@ -93,7 +93,7 @@ function GamesLibrary() {
           </SelectContent>
         </Select>
         <Select value={sort} onValueChange={(v) => setSort(v as Sort)}>
-          <SelectTrigger className="h-8 w-40 text-xs"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-8 w-[calc(50%-4px)] text-xs sm:w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="recent">Last modified</SelectItem>
             <SelectItem value="name">Name A–Z</SelectItem>
@@ -101,8 +101,8 @@ function GamesLibrary() {
             <SelectItem value="size">Install size</SelectItem>
           </SelectContent>
         </Select>
-        <span className="text-xs text-muted-foreground">{list.length} of {games.length}</span>
-        <div className="ml-auto flex items-center gap-2">
+        <span className="text-xs text-muted-foreground" aria-live="polite">{list.length} of {games.length}</span>
+        <div className="flex w-full items-center justify-between gap-2 sm:ml-auto sm:w-auto">
           <ToggleGroup type="single" value={view} onValueChange={(v) => v && setView(v as "grid" | "list")} className="rounded-md border p-0.5">
             <ToggleGroupItem value="grid" aria-label="Grid view" className="h-7 w-7"><LayoutGrid className="size-3.5" /></ToggleGroupItem>
             <ToggleGroupItem value="list" aria-label="List view" className="h-7 w-7"><List className="size-3.5" /></ToggleGroupItem>
@@ -112,15 +112,16 @@ function GamesLibrary() {
       </PageToolbar>
 
       {!hydrated ? (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">{Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-56" />)}</div>
+        <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">{Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-56" />)}</div>
       ) : list.length === 0 ? (
         <div className="rounded-lg border bg-card"><EmptyState icon={Gamepad2} title="No games match" description="Try a different search or filter." action={<Button variant="secondary" size="sm" onClick={() => { setQ(""); setFilter("all"); }}>Clear filters</Button>} /></div>
       ) : view === "grid" ? (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
           {list.map((g) => <GameCard key={g.id} game={g} onFav={() => toggleFav(g.id)} />)}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border bg-card">
+        <div className="overflow-x-auto rounded-lg border bg-card">
+          <div className="min-w-[680px]">
           <div className="grid grid-cols-[28px_1fr_110px_110px_100px_110px] gap-3 border-b px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
             <span /><span>Game</span><span>App ID</span><span>Status</span><span>Config</span><span>Modified</span>
           </div>
@@ -137,6 +138,7 @@ function GamesLibrary() {
               <span className="text-xs text-muted-foreground">{fmtDate(g.lastModified)}</span>
             </div>
           ))}
+          </div>
         </div>
       )}
       <AddGameDialog open={addOpen} onOpenChange={setAddOpen} />
