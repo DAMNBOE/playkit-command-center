@@ -16,7 +16,7 @@ export const searchSteamStore = createServerFn({ method: "GET" })
       const r = await fetch(`https://store.steampowered.com/api/appdetails?appids=${appId}&filters=basic`);
       if (!r.ok) throw new Error(`Steam store returned ${r.status}`);
       const j = (await r.json()) as Record<string, { success: boolean; data?: { name: string; header_image: string } }>;
-      const d = j[data.term];
+      const d = j[appId];
       return d?.success && d.data ? [{ appId: Number(appId), name: d.data.name, image: d.data.header_image }] : [];
     }
     const r = await fetch(`https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(data.term)}&l=english&cc=US`);
