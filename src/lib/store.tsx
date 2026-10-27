@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import type { Activity, ActivityType, ConfigFile, Download, Game, Plugin, Preset, Settings } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { defaultSettings, sampleActivity, sampleConfigs, sampleDownloads, sampleGames, samplePlugins, samplePresets } from "@/mocks/sample-data";
+import { withPopularGames } from "@/mocks/popular-games";
 import { matchesGameIdentity, visibleGameRecords } from "./game-visibility";
 
 interface State {
@@ -16,7 +17,7 @@ interface State {
 }
 
 const initial: State = {
-  games: sampleGames, configs: sampleConfigs, presets: samplePresets, downloads: sampleDownloads,
+  games: withPopularGames(sampleGames), configs: sampleConfigs, presets: samplePresets, downloads: sampleDownloads,
   plugins: samplePlugins, activity: sampleActivity, settings: defaultSettings,
 };
 
@@ -54,7 +55,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const raw = localStorage.getItem(KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<State>;
-        setState((s) => ({ ...s, ...parsed, settings: { ...defaultSettings, ...parsed.settings } }));
+        setState((s) => ({ ...s, ...parsed, settings: { ...defaultSettings, ...parsed.settings }, games: withPopularGames(parsed.games ?? s.games) }));
       }
     } catch { /* ignore corrupt storage */ }
     setHydrated(true);
