@@ -1,15 +1,66 @@
-import { Search, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check, Loader2, Plus, Search, X } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
 import { useStore } from "@/lib/store";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { searchSteamStore, type SteamSearchResult } from "@/lib/steam-search.functions";
 
 export function GameIdentitySearch() {
-  const { gameQuery, setGameQuery } = useStore();
+  const { gameQuery, setGameQuery, games, update, log, notify } = useStore();
+  const search = useServerFn(searchSteamStore);
+  const [results, setResults] = useState<SteamSearchResult[]>([]);
+  const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [error, setError] = useState("");
+  const term = gameQuery.trim();
+
+  useEffect(() => {
+    if (term.length < 2) { setResults([]); setStatus("idle"); return; }
+    let cancelled = false;
+    setStatus("loading");
+    const t = setTimeout(() => {
+      search({ data: { term } })
+        .then((r) => { if (!cancelled) { setResults(r); setStatus("idle"); } })
+        .catch((e: Error) => { if (!cancelled) { setError(e.message); setStatus("error"); } });
+    }, 400);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [term, search]);
+
+  const owned = new Set(games.map((g) => g.appId));
+  const add = (r: SteamSearchResult) => {
+    update("games", (gs) => gs.some((g) => g.appId === r.appId) ? gs : [...gs, {
+      id: crypto.randomUUID(), name: r.name, appId: r.appId, installed: false, configStatus: "none",
+      lastModified: new Date().toISOString(), installPath: "", sizeGb: 0, genre: "Uncategorized",
+      hue: (r.appId * 37) % 360, favorite: false, developer: "—",
+    }]);
+    log("game", `Added ${r.name} from Steam store`);
+    notify("Game added", r.name);
+  };
+
   return (
-    <div role="search" className="relative mb-4 flex w-full items-center">
-      <Search className="pointer-events-none absolute left-3 size-4 text-muted-foreground" />
-      <Input aria-label="Search games by name or Steam App ID" placeholder="Game name or Steam App ID" value={gameQuery} onChange={(e) => setGameQuery(e.target.value)} className="pl-9 pr-10" />
-      {gameQuery && <Button variant="ghost" size="icon" aria-label="Clear game search" className="absolute right-1 size-7" onClick={() => setGameQuery("")}><X className="size-4" /></Button>}
+    <div className="mb-4">
+      <div role="search" className="relative flex w-full items-center">
+        <Search className="pointer-events-none absolute left-3 size-4 text-muted-foreground" />
+        <Input aria-label="Search games by name or Steam App ID" placeholder="Game name or Steam App ID" value={gameQuery} onChange={(e) => setGameQuery(e.target.value)} className="pl-9 pr-10" />
+        {gameQuery && <Button variant="ghost" size="icon" aria-label="Clear game search" className="absolute right-1 size-7" onClick={() => setGameQuery("")}><X className="size-4" /></Button>}
+      </div>
+      {term.length >= 2 && (
+        <div className="mt-2 rounded-lg border border-border bg-card p-2">
+          <p className="px-1 pb-2 text-xs text-muted-foreground">Steam store results</p>
+          {status === "loading" && <p className="flex items-center gap-2 px-1 py-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" />Searching Steam…</p>}
+          {status === "error" && <p className="px-1 py-2 text-sm text-destructive">Steam search failed: {error}</p>}
+          {status === "idle" && results.length === 0 && <p className="px-1 py-2 text-sm text-muted-foreground">No Steam games match.</p>}
+          {status === "idle" && results.map((r) => (
+            <div key={r.appId} className="flex items-center gap-3 rounded-md px-1 py-1.5 hover:bg-accent">
+              <img src={r.image} alt="" className="h-9 w-20 shrink-0 rounded object-cover" loading="lazy" />
+              <div className="min-w-0 flex-1"><p className="truncate text-sm">{r.name}</p><p className="text-xs text-muted-foreground">App ID {r.appId}</p></div>
+              {owned.has(r.appId)
+                ? <span className="flex items-center gap-1 text-xs text-muted-foreground"><Check className="size-3" />In library</span>
+                : <Button size="sm" variant="outline" onClick={() => add(r)}><Plus className="size-3" />Add</Button>}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
