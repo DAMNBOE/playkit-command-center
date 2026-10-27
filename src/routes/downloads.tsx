@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { uid } from "@/lib/store";
 import { AlertTriangle, CheckCircle2, Clock, Download as DlIcon, FlaskConical, Pause, Play, RotateCw, Trash2, X } from "lucide-react";
-import { useStore, timeAgo } from "@/lib/store";
+import { useStore, useGameVisibility, timeAgo } from "@/lib/store";
 import { EmptyState, Panel } from "@/components/app/bits";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -17,6 +17,8 @@ import { tickDownloads } from "@/lib/downloads";
 export const Route = createFileRoute("/downloads")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "Downloads — AfScripts" },
       { name: "description", content: "Download queue with progress, speed and status controls in AfScripts." },
       { property: "og:title", content: "Downloads — AfScripts" },
@@ -37,7 +39,8 @@ const statusMeta: Record<DownloadStatus, { label: string; cls: string; icon: typ
 const fmtMb = (mb: number) => (mb >= 1024 ? `${(mb / 1024).toFixed(2)} GB` : `${mb.toFixed(mb < 10 ? 1 : 0)} MB`);
 
 function Downloads() {
-  const { downloads, update, settings, log, notify, fail, gameById } = useStore();
+  const { update, settings, log, notify, fail } = useStore();
+  const { downloads, gameById } = useGameVisibility();
 
   const desktop = isDesktopRuntime();
   const [url, setUrl] = useState("");
@@ -63,7 +66,7 @@ function Downloads() {
     const u = url.trim();
     if (!/^https?:\/\//.test(u)) { fail("Enter a valid http(s) link"); return; }
     const id = uid();
-    const name = decodeURIComponent(u.split("?")[0]!.split("/").pop() || "download");
+    const name = decodeURIComponent(u.split("?")[0]?.split("/").pop() || "download");
     try { await getServices().downloads.start(id, u); }
     catch (e) { fail("Could not start download", (e as Error).message); return; }
     update("downloads", (ds) => [{ id, name, url: u, sizeMb: 0, progress: 0, speedMbps: 0, status: "active", addedAt: new Date().toISOString() }, ...ds]);
@@ -75,7 +78,7 @@ function Downloads() {
     const t = setInterval(() => {
       update("downloads", (ds) => {
         const next = tickDownloads(ds, settings.maxConcurrent);
-        next.forEach((d, i) => { if (d.status === "completed" && ds[i]?.status === "active") setTimeout(() => { notify("Download complete (simulated)", d.name); log("download", `Completed download: ${d.name}`, d.gameId); }); });
+        next.forEach((d, i) => { if (d.status === "completed" && ds[i]?.status === "active") setTimeout(() => { log("download", `Completed download: ${d.name}`, d.gameId); }); });
         return next;
       });
     }, 1000);

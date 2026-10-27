@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { uid, useStore } from "@/lib/store";
+import { uid, useStore, useGameVisibility } from "@/lib/store";
+import { GameIdentitySearch } from "./GameIdentitySearch";
 import type { ConfigFile, Preset } from "@/lib/types";
 import { getEnvironment, getServices } from "@/services";
 import { Loader2, Upload } from "lucide-react";
@@ -94,7 +95,8 @@ const extFormat = (name: string): ConfigFile["format"] => {
 };
 
 export function ImportConfigDialog({ open, onOpenChange, defaultGameId, onImported }: { open: boolean; onOpenChange: (o: boolean) => void; defaultGameId?: string | undefined; onImported?: (id: string) => void }) {
-  const { games, update, log, notify } = useStore();
+  const { update, log, notify } = useStore();
+  const { games } = useGameVisibility();
   const [gameId, setGameId] = useState(defaultGameId ?? "");
   const [file, setFile] = useState<{ name: string; content: string } | null>(null);
   const [error, setError] = useState("");
@@ -109,7 +111,7 @@ export function ImportConfigDialog({ open, onOpenChange, defaultGameId, onImport
   };
 
   const submit = () => {
-    if (!gameId) return setError("Select a game");
+    if (!games.some((g) => g.id === gameId)) return setError("Select a matching game");
     if (!file) return setError("Choose a configuration file");
     const id = uid();
     update("configs", (cs) => [{ id, gameId, name: file.name, path: `imported\\${file.name}`, format: extFormat(file.name), content: file.content, modifiedAt: new Date().toISOString(), backups: [] }, ...cs]);
@@ -127,7 +129,8 @@ export function ImportConfigDialog({ open, onOpenChange, defaultGameId, onImport
         <div className="space-y-3">
           <div className="space-y-1.5">
             <Label>Game</Label>
-            <Select value={gameId} onValueChange={setGameId}>
+            <GameIdentitySearch />
+            <Select value={games.some((g) => g.id === gameId) ? gameId : ""} onValueChange={setGameId}>
               <SelectTrigger><SelectValue placeholder="Select a game" /></SelectTrigger>
               <SelectContent>{games.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
             </Select>
@@ -146,7 +149,8 @@ export function ImportConfigDialog({ open, onOpenChange, defaultGameId, onImport
 }
 
 export function PresetDialog({ open, onOpenChange, preset, defaultGameId }: { open: boolean; onOpenChange: (o: boolean) => void; preset?: Preset | null; defaultGameId?: string | undefined }) {
-  const { games, presets, update, log, notify } = useStore();
+  const { presets, update, log, notify } = useStore();
+  const { games } = useGameVisibility();
   const [name, setName] = useState("");
   const [gameId, setGameId] = useState("");
   const [description, setDescription] = useState("");
@@ -164,7 +168,7 @@ export function PresetDialog({ open, onOpenChange, preset, defaultGameId }: { op
     if (n.length < 3) e.name = "Name must be at least 3 characters";
     else if (n.length > 48) e.name = "Name must be 48 characters or fewer";
     else if (presets.some((p) => p.name.toLowerCase() === n.toLowerCase() && p.id !== preset?.id)) e.name = "A preset with this name already exists";
-    if (!gameId) e.gameId = "Select a game";
+    if (!games.some((g) => g.id === gameId)) e.gameId = "Select a matching game";
     if (description.length > 200) e.description = "Description must be 200 characters or fewer";
     setErrors(e);
     if (Object.keys(e).length) return;
@@ -187,7 +191,8 @@ export function PresetDialog({ open, onOpenChange, preset, defaultGameId }: { op
           <div className="space-y-1.5"><Label>Preset name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Competitive Low-Latency" /><FieldError msg={errors.name} /></div>
           <div className="space-y-1.5">
             <Label>Associated game</Label>
-            <Select value={gameId} onValueChange={setGameId}>
+            <GameIdentitySearch />
+            <Select value={games.some((g) => g.id === gameId) ? gameId : ""} onValueChange={setGameId}>
               <SelectTrigger><SelectValue placeholder="Select a game" /></SelectTrigger>
               <SelectContent>{games.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
             </Select>

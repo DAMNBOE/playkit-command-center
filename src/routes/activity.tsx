@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Activity as ActIco } from "lucide-react";
-import { useStore } from "@/lib/store";
+import { useStore, useGameVisibility } from "@/lib/store";
 import { ActivityIcon, EmptyState, PageToolbar } from "@/components/app/bits";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,8 @@ import type { ActivityType } from "@/lib/types";
 export const Route = createFileRoute("/activity")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "Activity — AfScripts" },
       { name: "description", content: "History of configuration changes, imports, exports, backups and presets." },
       { property: "og:title", content: "Activity — AfScripts" },
@@ -32,7 +34,8 @@ function dayLabel(iso: string) {
 }
 
 function ActivityPage() {
-  const { activity, gameById, update } = useStore();
+  const { update } = useStore();
+  const { activity, gameById } = useGameVisibility();
   const [f, setF] = useState<"all" | ActivityType>("all");
   const groups = useMemo(() => {
     const m = new Map<string, typeof activity>();

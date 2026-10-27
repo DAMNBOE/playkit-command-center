@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Archive, FileCode2, FileDown, FileUp, GitCompare, History, MoreHorizontal, Pencil, RotateCcw, Save, Search, Trash2, Undo2,
 } from "lucide-react";
-import { fmtDate, timeAgo, useStore } from "@/lib/store";
+import { fmtDate, timeAgo, useStore, useGameVisibility } from "@/lib/store";
 import { EmptyState } from "@/components/app/bits";
 import { CodeEditor, diffLines } from "@/components/app/CodeEditor";
 import { ImportConfigDialog } from "@/components/app/dialogs";
@@ -27,6 +27,8 @@ export const Route = createFileRoute("/configurations")({
   }),
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "Configuration Manager — AfScripts" },
       { name: "description", content: "View, edit, back up, restore and compare game configuration files in AfScripts." },
       { property: "og:title", content: "Configuration Manager — AfScripts" },
@@ -41,7 +43,8 @@ const fmtBadge: Record<string, string> = { ini: "text-info", cfg: "text-primary"
 function ConfigManager() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/configurations" });
-  const { configs, games, gameById, update, log, notify, fail } = useStore();
+  const { update, log, notify, fail } = useStore();
+  const { configs, games, gameById } = useGameVisibility();
   const { backup, restore, exportFile } = useConfigActions();
   const [q, setQ] = useState("");
   const gameFilter = search.game ?? "all";
@@ -60,7 +63,7 @@ function ConfigManager() {
     (!q || c.name.toLowerCase().includes(q.toLowerCase()) || gameById(c.gameId)?.name.toLowerCase().includes(q.toLowerCase()))),
   [configs, gameFilter, q, gameById]);
 
-  const selected = configs.find((c) => c.id === search.file) ?? list[0];
+  const selected = list.find((c) => c.id === search.file) ?? list[0];
   useEffect(() => { setDraft(selected?.content ?? ""); }, [selected?.id, selected?.content]);
   const dirty = !!selected && draft !== selected.content;
 

@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import type { Activity, ActivityType, ConfigFile, Download, Game, Plugin, Preset, Settings } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { defaultSettings, sampleActivity, sampleConfigs, sampleDownloads, sampleGames, samplePlugins, samplePresets } from "@/mocks/sample-data";
+import { matchesGameIdentity, visibleGameRecords } from "./game-visibility";
 
 interface State {
   games: Game[];
@@ -25,6 +26,8 @@ export const uid = () => Math.random().toString(36).slice(2, 10);
 export type SyncStatus = "off" | "syncing" | "synced" | "error";
 
 interface Store extends State {
+  gameQuery: string;
+  setGameQuery: (query: string) => void;
   hydrated: boolean;
   account: { id: string; email: string } | null;
   syncStatus: SyncStatus;
@@ -40,6 +43,7 @@ interface Store extends State {
 const Ctx = createContext<Store | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
+  const [gameQuery, setGameQuery] = useState("");
   const [state, setState] = useState<State>(initial);
   const [hydrated, setHydrated] = useState(false);
   const stateRef = useRef(state);
@@ -118,9 +122,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const reset = useCallback(() => { localStorage.removeItem(KEY); setState(initial); }, []);
 
   const value = useMemo<Store>(() => ({
-    ...state, hydrated, update, log, notify, fail, reset, account, syncStatus,
+    ...state, hydrated, update, log, notify, fail, reset, account, syncStatus, gameQuery, setGameQuery,
     gameById: (id) => state.games.find((g) => g.id === id),
-  }), [state, hydrated, update, log, notify, fail, reset, account, syncStatus]);
+  }), [state, hydrated, update, log, notify, fail, reset, account, syncStatus, gameQuery]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
@@ -133,6 +137,24 @@ export function useStore() {
 
 export const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+/** Presentation-only scope: mutations always use the complete stored collections. */
+export function useGameVisibility() {
+  const store = useStore();
+  return useMemo(() => {
+    const games = store.games.filter((g) => matchesGameIdentity(g, store.gameQuery));
+    const visibleIds = new Set(games.map((g) => g.id));
+    const hideUnlinkedIdentity = (text: string) => !store.games.some((g) => !visibleIds.has(g.id) && text.toLowerCase().includes(g.name.toLowerCase()));
+    return {
+      games,
+      configs: visibleGameRecords(store.configs, store.games, store.gameQuery),
+      presets: visibleGameRecords(store.presets, store.games, store.gameQuery),
+      downloads: visibleGameRecords(store.downloads, store.games, store.gameQuery).filter((d) => hideUnlinkedIdentity(d.name)),
+      activity: visibleGameRecords(store.activity, store.games, store.gameQuery).filter((a) => hideUnlinkedIdentity(a.message)),
+      gameById: (id?: string) => games.find((g) => g.id === id),
+    };
+  }, [store.games, store.configs, store.presets, store.downloads, store.activity, store.gameQuery]);
+}
 
 export function timeAgo(iso: string) {
   const s = (Date.now() - new Date(iso).getTime()) / 1000;
