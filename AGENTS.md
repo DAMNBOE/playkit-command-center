@@ -19,4 +19,4 @@
 - Mobile (<md) uses a Sheet navigation drawer sharing `SidebarContent` with the desktop sidebar; wide tables scroll horizontally or collapse columns instead of overflowing the page.
 - App chrome (sidebar, top bar, window controls) is `src/components/app/AppShell.tsx`, mounted once in `__root.tsx`.
 - Simulated behaviour (downloads) must be labelled in the UI; the runtime is shown by `EnvironmentBadge`. Packaging steps live in `docs/DESKTOP.md`; desktop builds use `bun run build:desktop` (static SPA via `AFSCRIPTS_DESKTOP=1`) and are produced by `.github/workflows/windows-release.yml` on a Windows runner, keeping the web build SSR.
-- The shared sidebar's WindowsDownload control must report installer unavailability until a real release artifact is hosted; never substitute source archives or placeholder downloads for an installer.
+- The shared sidebar's WindowsDownload control links only to real GitHub Release installer assets (version + size in `RELEASE`); update it when a new release is published, never point it at source archives or placeholders.
