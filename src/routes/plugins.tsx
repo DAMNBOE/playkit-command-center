@@ -45,10 +45,10 @@ function Plugins() {
   return (
     <div>
       <PageToolbar>
-        <div className="relative w-64"><Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" /><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search plugins" className="h-8 pl-8 text-xs" /></div>
+        <div className="relative w-full sm:w-64"><Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" /><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search plugins" className="h-8 pl-8 text-xs" /></div>
         <Select value={status} onValueChange={setStatus}><SelectTrigger className="h-8 w-36 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent><SelectItem value="all">Any status</SelectItem><SelectItem value="enabled">Enabled</SelectItem><SelectItem value="disabled">Disabled</SelectItem></SelectContent></Select>
-        <Select value={cat} onValueChange={setCat}><SelectTrigger className="h-8 w-40 text-xs"><SelectValue /></SelectTrigger>
+        <Select value={cat} onValueChange={setCat}><SelectTrigger className="h-8 w-[calc(50%-4px)] text-xs sm:w-40"><SelectValue /></SelectTrigger>
           <SelectContent><SelectItem value="all">All categories</SelectItem>{["Utility", "Visual", "Performance", "Integration"].map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
         <span className="ml-auto text-xs text-muted-foreground">{plugins.filter((p) => p.enabled).length} of {plugins.length} enabled</span>
       </PageToolbar>

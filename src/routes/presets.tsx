@@ -41,7 +41,7 @@ function Presets() {
   return (
     <div>
       <PageToolbar>
-        <div className="relative w-64"><Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" /><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search presets" className="h-8 pl-8 text-xs" /></div>
+        <div className="relative w-full sm:w-64"><Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" /><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search presets" className="h-8 pl-8 text-xs" /></div>
         <Select value={game} onValueChange={setGame}>
           <SelectTrigger className="h-8 w-48 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent><SelectItem value="all">All games</SelectItem>{games.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
