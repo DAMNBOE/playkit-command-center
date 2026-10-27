@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   Archive, Download, FileCog, FileDown, FileUp, Gamepad2, History, Layers, Puzzle,
@@ -18,8 +18,14 @@ export function Logo({ size = 32 }: { size?: number }) {
   );
 }
 
+/** Official Steam store header art for a given App ID. */
+export const steamHeaderUrl = (appId: number) =>
+  `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/header.jpg`;
+
 export function GameCover({ game, className }: { game: Game; className?: string }) {
+  const [failed, setFailed] = useState(false);
   const initials = game.name.replace(/[^A-Za-z0-9 ]/g, "").split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("");
+  const showArt = game.appId > 0 && !failed;
   return (
     <div
       className={cn("relative overflow-hidden rounded-md", className)}
@@ -27,13 +33,19 @@ export function GameCover({ game, className }: { game: Game; className?: string 
         background: `radial-gradient(120% 90% at 20% 10%, oklch(0.55 0.14 ${game.hue}) 0%, oklch(0.28 0.08 ${game.hue}) 45%, oklch(0.16 0.02 ${game.hue}) 100%)`,
       }}
     >
-      <div
-        className="absolute inset-0 opacity-30"
-        style={{ backgroundImage: "repeating-linear-gradient(135deg, transparent 0 10px, oklch(1 0 0 / 0.05) 10px 11px)" }}
-      />
-      <div className="absolute inset-0 grid place-items-center text-3xl font-extrabold tracking-tight text-foreground/90 drop-shadow">
-        {initials}
-      </div>
+      {showArt ? (
+        <img
+          src={steamHeaderUrl(game.appId)}
+          alt={`${game.name} cover art`}
+          loading="lazy"
+          onError={() => setFailed(true)}
+          className="absolute inset-0 size-full object-cover"
+        />
+      ) : (
+        <div className="absolute inset-0 grid place-items-center text-3xl font-extrabold tracking-tight text-foreground/90 drop-shadow">
+          {initials}
+        </div>
+      )}
       <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-background/80 to-transparent" />
     </div>
   );
