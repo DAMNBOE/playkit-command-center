@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import type { Activity, ActivityType, ConfigFile, Download, Game, Plugin, Preset, Settings } from "./types";
-import { defaultSettings, sampleActivity, sampleConfigs, sampleDownloads, sampleGames, samplePlugins, samplePresets } from "./sample-data";
+import { defaultSettings, sampleActivity, sampleConfigs, sampleDownloads, sampleGames, samplePlugins, samplePresets } from "@/mocks/sample-data";
 
 interface State {
   games: Game[];
