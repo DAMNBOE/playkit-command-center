@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { getPlatform } from "@/services/platform";
+import { getEnvironment } from "@/services";
 import type { Settings } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -101,7 +101,7 @@ function SettingsPage() {
               </div>
               <dl className="grid grid-cols-[110px_minmax(0,1fr)] sm:grid-cols-[140px_minmax(0,1fr)] gap-y-1.5 text-xs">
                 <dt className="text-muted-foreground">Version</dt><dd>0.1.0 (preview)</dd>
-                <dt className="text-muted-foreground">Runtime</dt><dd>{getPlatform().kind === "mock" ? "Browser preview — file operations simulated" : "Native Windows"}</dd>
+                <dt className="text-muted-foreground">Runtime</dt><dd><span suppressHydrationWarning>{getEnvironment().kind === "browser" ? "Browser preview — no access to Windows files" : "Windows desktop app"}</span></dd>
                 <dt className="text-muted-foreground">Data storage</dt><dd>Stored locally on this device</dd>
               </dl>
               <AlertDialog>

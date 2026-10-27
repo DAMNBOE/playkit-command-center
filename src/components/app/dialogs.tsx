@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { uid, useStore } from "@/lib/store";
 import type { ConfigFile, Preset } from "@/lib/types";
-import { getPlatform } from "@/services/platform";
+import { getEnvironment, getServices } from "@/services";
 import { Loader2, Upload } from "lucide-react";
 
 type Errs = Partial<Record<"name" | "appId" | "path" | "gameId" | "description", string>>;
@@ -31,8 +31,11 @@ export function AddGameDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   const detect = async () => {
     if (!name.trim()) { setErrors({ name: "Enter a game name first" }); return; }
     setDetecting(true);
-    const p = await getPlatform().detectInstallPath(Number(appId), name.trim());
-    setPath(p ?? ""); setDetecting(false);
+    try {
+      const p = await getServices().library.detectInstallPath(Number(appId), name.trim());
+      if (p) setPath(p); else setErrors({ path: "Install folder not found — enter it manually" });
+    } catch (e) { setErrors({ path: (e as Error).message }); }
+    setDetecting(false);
   };
 
   const submit = () => {
@@ -68,10 +71,10 @@ export function AddGameDialog({ open, onOpenChange }: { open: boolean; onOpenCha
               <Label>Installation path</Label>
               <div className="flex gap-2">
                 <Input value={path} onChange={(e) => setPath(e.target.value)} placeholder="C:\Games\…" className="font-mono text-xs" />
-                <Button variant="secondary" onClick={detect} disabled={detecting}>{detecting ? <Loader2 className="size-4 animate-spin" /> : "Detect"}</Button>
+                <Button variant="secondary" onClick={detect} disabled={detecting || !getEnvironment().canDetectGames}>{detecting ? <Loader2 className="size-4 animate-spin" /> : "Detect"}</Button>
               </div>
               <FieldError msg={errors.path} />
-              <p className="text-[10px] text-muted-foreground">Detection is simulated in preview mode.</p>
+              <p className="text-[10px] text-muted-foreground">{getEnvironment().canDetectGames ? "Detect looks up the folder in your Steam libraries." : "Automatic detection needs the desktop app — type the path manually."}</p>
             </div>
           )}
         </div>

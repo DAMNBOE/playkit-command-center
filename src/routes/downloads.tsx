@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { getPlatform } from "@/services/platform";
+import { getServices } from "@/services";
 import type { Download, DownloadStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { tickDownloads } from "@/lib/downloads";
@@ -50,12 +50,12 @@ function Downloads() {
 
   const set = (id: string, patch: Partial<Download>) => update("downloads", (ds) => ds.map((d) => (d.id === id ? { ...d, ...patch } : d)));
   const pause = async (d: Download) => {
-    try { await getPlatform().pauseDownload(d.id); set(d.id, { status: "paused", speedMbps: 0 }); }
+    try { await getServices().downloads.pause(d.id); set(d.id, { status: "paused", speedMbps: 0 }); }
     catch (e) { fail("Could not pause download", (e as Error).message); }
   };
   const resume = (d: Download) => set(d.id, { status: "queued" });
   const cancel = async (d: Download) => {
-    try { await getPlatform().cancelDownload(d.id); }
+    try { await getServices().downloads.cancel(d.id); }
     catch (e) { fail("Could not cancel download", (e as Error).message); return; }
     update("downloads", (ds) => ds.filter((x) => x.id !== d.id)); notify("Download cancelled", d.name);
   };

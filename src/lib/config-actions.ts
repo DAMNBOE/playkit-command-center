@@ -1,5 +1,5 @@
 import { uid, useStore } from "./store";
-import { getPlatform } from "@/services/platform";
+import { getServices } from "@/services";
 import { downloadFile } from "@/components/app/bits";
 import type { ConfigFile } from "./types";
 
@@ -8,7 +8,7 @@ export function useConfigActions() {
   const { update, log, notify, fail, settings } = useStore();
 
   const backup = async (c: ConfigFile, label = "Manual backup") => {
-    try { await getPlatform().createBackup(c.path, c.content); }
+    try { await getServices().backups.create(c.path, c.content); }
     catch (e) { fail("Backup failed", (e as Error).message); return; }
     update("configs", (cs) => cs.map((x) => x.id === c.id
       ? { ...x, backups: [{ id: uid(), label, createdAt: new Date().toISOString(), content: c.content }, ...x.backups].slice(0, settings.backupLimit) }
