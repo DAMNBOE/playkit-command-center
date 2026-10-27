@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   Activity as ActivityIcon, Bell, ChevronsLeft, ChevronsRight, Download, FileCog, Gamepad2,
-  Layers, LayoutDashboard, Minus, Puzzle, Search, Settings, Square, X,
+  Layers, LayoutDashboard, Menu, Minus, Puzzle, Search, Settings, Square, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { timeAgo, useStore } from "@/lib/store";
@@ -16,7 +16,8 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { getPlatform } from "@/services/platform";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
+import { getPlatform, type WindowAction } from "@/services/platform";
 
 export const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -39,6 +40,7 @@ const ACCENTS = {
 export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const { settings, downloads, activity, hydrated } = useStore();
   const path = useRouterState({ select: (s) => s.location.pathname });
 
@@ -64,6 +66,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  useEffect(() => { setDrawerOpen(false); }, [path]);
+
   const isActive = (to: string) => (to === "/" ? path === "/" : path.startsWith(to));
   const current = NAV.find((n) => isActive(n.to)) ?? NAV[0];
   const pageTitle = path.startsWith("/games/") ? "Game Details" : current.label;
@@ -71,72 +75,36 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <TooltipProvider delayDuration={250}>
-      <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
-        {/* Sidebar */}
-        <aside className={cn("flex shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-200", collapsed ? "w-[60px]" : "w-[224px]")}>
-          <div className="drag-region flex h-14 items-center gap-2.5 px-3.5">
-            <Logo size={30} />
-            {!collapsed && (
-              <div className="min-w-0 leading-tight">
-                <div className="text-[14px] font-bold tracking-tight">AfScripts</div>
-                <div className="truncate text-[10px] text-muted-foreground">Game Configuration & Management</div>
-              </div>
-            )}
-          </div>
-          <nav className="flex-1 space-y-0.5 px-2 py-3">
-            {NAV.map((item) => {
-              const active = isActive(item.to);
-              const link = (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className={cn(
-                    "group relative flex h-8 items-center gap-2.5 rounded-md px-2.5 text-[13px] transition-colors",
-                    active ? "bg-sidebar-accent font-medium text-foreground" : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
-                    collapsed && "justify-center px-0",
-                  )}
-                >
-                  {active && <span className="bg-brand absolute -left-2 top-1.5 h-5 w-[3px] rounded-r" />}
-                  <item.icon className={cn("size-4 shrink-0", active && "text-primary")} />
-                  {!collapsed && <span>{item.label}</span>}
-                  {!collapsed && item.to === "/downloads" && activeDl > 0 && (
-                    <span className="ml-auto rounded bg-primary/20 px-1.5 text-[10px] font-semibold text-primary">{activeDl}</span>
-                  )}
-                </Link>
-              );
-              return collapsed ? (
-                <Tooltip key={item.to}>
-                  <TooltipTrigger asChild>{link}</TooltipTrigger>
-                  <TooltipContent side="right">{item.label}</TooltipContent>
-                </Tooltip>
-              ) : link;
-            })}
-          </nav>
-          <div className="border-t border-sidebar-border p-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button onClick={() => setCollapsed((c) => !c)} className={cn("mb-1 flex h-8 w-full items-center gap-2.5 rounded-md px-2.5 text-xs text-muted-foreground hover:bg-sidebar-accent hover:text-foreground", collapsed && "justify-center px-0")}>
-                  {collapsed ? <ChevronsRight className="size-4" /> : <><ChevronsLeft className="size-4" /> Collapse</>}
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right">{collapsed ? "Expand sidebar" : "Collapse sidebar"}</TooltipContent>
-            </Tooltip>
-            <ProfileMenu collapsed={collapsed} />
-          </div>
+      <div className="flex h-dvh w-full overflow-hidden bg-background text-foreground">
+        {/* Sidebar (tablet/desktop) */}
+        <aside className={cn("hidden shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-200 md:flex", collapsed ? "w-[60px]" : "w-[224px]")}>
+          <SidebarContent collapsed={collapsed} isActive={isActive} activeDl={activeDl} onToggle={() => setCollapsed((c) => !c)} />
         </aside>
+
+        {/* Navigation drawer (mobile) */}
+        <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
+          <SheetContent side="left" className="w-[260px] border-sidebar-border bg-sidebar p-0 [&>button]:hidden">
+            <SheetTitle className="sr-only">Navigation</SheetTitle>
+            <SheetDescription className="sr-only">AfScripts sections</SheetDescription>
+            <div className="flex h-full flex-col"><SidebarContent collapsed={false} isActive={isActive} activeDl={activeDl} /></div>
+          </SheetContent>
+        </Sheet>
 
         {/* Main */}
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="drag-region flex h-14 shrink-0 items-center gap-3 border-b pl-5">
-            <h1 className="text-[15px] font-semibold tracking-tight">{pageTitle}</h1>
-            <button onClick={() => setSearchOpen(true)} className="no-drag mx-auto flex h-8 w-full max-w-md items-center gap-2 rounded-md border bg-card px-3 text-xs text-muted-foreground hover:border-primary/40">
-              <Search className="size-3.5" /> Search games, configs, presets…
-              <kbd className="ml-auto rounded border bg-muted px-1.5 font-mono text-[10px]">Ctrl K</kbd>
+          <header className="drag-region flex h-14 shrink-0 items-center gap-2 border-b pl-2 pr-2 sm:gap-3 md:pl-5 md:pr-0">
+            <button aria-label="Open navigation" onClick={() => setDrawerOpen(true)} className="no-drag grid size-9 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground md:hidden">
+              <Menu className="size-5" />
+            </button>
+            <h1 className="min-w-0 truncate text-[15px] font-semibold tracking-tight">{pageTitle}</h1>
+            <button onClick={() => setSearchOpen(true)} aria-label="Search" className="no-drag ml-auto flex size-9 shrink-0 items-center justify-center gap-2 rounded-md text-xs text-muted-foreground hover:border-primary/40 sm:mx-auto sm:h-8 sm:w-full sm:max-w-md sm:justify-start sm:border sm:bg-card sm:px-3">
+              <Search className="size-4 sm:size-3.5" /> <span className="hidden truncate sm:inline">Search games, configs, presets…</span>
+              <kbd className="ml-auto hidden rounded border bg-muted px-1.5 font-mono text-[10px] lg:inline">Ctrl K</kbd>
             </button>
             <div className="no-drag flex items-center gap-1">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] text-muted-foreground">
+                  <div className="hidden items-center gap-1.5 whitespace-nowrap rounded-md border px-2 py-1 text-[11px] text-muted-foreground lg:flex">
                     <span className="size-1.5 animate-pulse rounded-full bg-success" />
                     {getPlatform().kind === "mock" ? "Preview mode" : "Native"}
                   </div>
@@ -150,7 +118,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-primary" />
                   </button>
                 </PopoverTrigger>
-                <PopoverContent align="end" className="w-80 p-0">
+                <PopoverContent align="end" className="w-[min(20rem,calc(100vw-1rem))] p-0">
                   <div className="border-b px-3 py-2 text-xs font-semibold">Notifications</div>
                   <div className="max-h-72 overflow-auto" suppressHydrationWarning>
                     {activity.slice(0, 6).map((a) => (
@@ -165,12 +133,12 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
             <WindowControls />
           </header>
-          <main className="min-h-0 flex-1 overflow-auto">
+          <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
             {hydrated ? (
-              <div key={path} className="animate-fade-up mx-auto max-w-[1400px] p-5">{children}</div>
+              <div key={path} className="animate-fade-up mx-auto w-full max-w-[1400px] p-3 sm:p-5">{children}</div>
             ) : (
-              <div className="mx-auto max-w-[1400px] space-y-3 p-5" aria-busy="true">
-                <div className="grid grid-cols-4 gap-3">{[0, 1, 2, 3].map((i) => <div key={i} className="h-24 animate-pulse rounded-lg bg-card" />)}</div>
+              <div className="mx-auto max-w-[1400px] space-y-3 p-3 sm:p-5" aria-busy="true">
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{[0, 1, 2, 3].map((i) => <div key={i} className="h-24 animate-pulse rounded-lg bg-card" />)}</div>
                 <div className="h-80 animate-pulse rounded-lg bg-card" />
               </div>
             )}
@@ -179,6 +147,66 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
       <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
     </TooltipProvider>
+  );
+}
+
+function SidebarContent({ collapsed, isActive, activeDl, onToggle }: {
+  collapsed: boolean; isActive: (to: string) => boolean; activeDl: number; onToggle?: () => void;
+}) {
+  return (
+    <>
+      <div className="drag-region flex h-14 shrink-0 items-center gap-2.5 px-3.5">
+        <Logo size={30} />
+        {!collapsed && (
+          <div className="min-w-0 leading-tight">
+            <div className="text-[14px] font-bold tracking-tight">AfScripts</div>
+            <div className="truncate text-[10px] text-muted-foreground">Game Configuration & Management</div>
+          </div>
+        )}
+      </div>
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-3">
+        {NAV.map((item) => {
+          const active = isActive(item.to);
+          const link = (
+            <Link
+              key={item.to}
+              to={item.to}
+              className={cn(
+                "group relative flex h-9 items-center gap-2.5 rounded-md px-2.5 text-[13px] transition-colors md:h-8",
+                active ? "bg-sidebar-accent font-medium text-foreground" : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
+                collapsed && "justify-center px-0",
+              )}
+            >
+              {active && <span className="bg-brand absolute -left-2 top-1.5 h-5 w-[3px] rounded-r" />}
+              <item.icon className={cn("size-4 shrink-0", active && "text-primary")} />
+              {!collapsed && <span>{item.label}</span>}
+              {!collapsed && item.to === "/downloads" && activeDl > 0 && (
+                <span className="ml-auto rounded bg-primary/20 px-1.5 text-[10px] font-semibold text-primary">{activeDl}</span>
+              )}
+            </Link>
+          );
+          return collapsed ? (
+            <Tooltip key={item.to}>
+              <TooltipTrigger asChild>{link}</TooltipTrigger>
+              <TooltipContent side="right">{item.label}</TooltipContent>
+            </Tooltip>
+          ) : link;
+        })}
+      </nav>
+      <div className="border-t border-sidebar-border p-2">
+        {onToggle && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button onClick={onToggle} className={cn("mb-1 flex h-8 w-full items-center gap-2.5 rounded-md px-2.5 text-xs text-muted-foreground hover:bg-sidebar-accent hover:text-foreground", collapsed && "justify-center px-0")}>
+                {collapsed ? <ChevronsRight className="size-4" /> : <><ChevronsLeft className="size-4" /> Collapse</>}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">{collapsed ? "Expand sidebar" : "Collapse sidebar"}</TooltipContent>
+          </Tooltip>
+        )}
+        <ProfileMenu collapsed={collapsed} />
+      </div>
+    </>
   );
 }
 
@@ -197,7 +225,7 @@ function ProfileMenu({ collapsed }: { collapsed: boolean }) {
           )}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="right" align="end" className="w-48">
+      <DropdownMenuContent side="top" align="start" className="w-48">
         <DropdownMenuLabel>Nova Kade</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => navigate({ to: "/settings" })}>Settings</DropdownMenuItem>
@@ -210,12 +238,15 @@ function ProfileMenu({ collapsed }: { collapsed: boolean }) {
 }
 
 function WindowControls() {
-  const msg = () => toast("Window controls work in the packaged Windows app.");
+  const msg = (action: WindowAction) => async () => {
+    const ok = await getPlatform().windowAction(action).catch(() => false);
+    if (!ok) toast("Window controls work in the packaged Windows app.");
+  };
   return (
-    <div className="no-drag flex h-full">
-      <button aria-label="Minimize" onClick={msg} className="grid h-full w-11 place-items-center text-muted-foreground hover:bg-accent"><Minus className="size-3.5" /></button>
-      <button aria-label="Maximize" onClick={msg} className="grid h-full w-11 place-items-center text-muted-foreground hover:bg-accent"><Square className="size-3" /></button>
-      <button aria-label="Close" onClick={msg} className="grid h-full w-11 place-items-center text-muted-foreground hover:bg-destructive hover:text-destructive-foreground"><X className="size-3.5" /></button>
+    <div className="no-drag hidden h-full md:flex">
+      <button aria-label="Minimize" onClick={msg("minimize")} className="grid h-full w-11 place-items-center text-muted-foreground hover:bg-accent"><Minus className="size-3.5" /></button>
+      <button aria-label="Maximize" onClick={msg("maximize")} className="grid h-full w-11 place-items-center text-muted-foreground hover:bg-accent"><Square className="size-3" /></button>
+      <button aria-label="Close" onClick={msg("close")} className="grid h-full w-11 place-items-center text-muted-foreground hover:bg-destructive hover:text-destructive-foreground"><X className="size-3.5" /></button>
     </div>
   );
 }
