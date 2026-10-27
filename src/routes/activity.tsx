@@ -57,7 +57,7 @@ function ActivityPage() {
                 {items.map((a) => (
                   <div key={a.id} className="flex items-center gap-3 border-b px-4 py-2.5 last:border-0">
                     <ActivityIcon type={a.type} />
-                    <p className="flex-1 text-xs">{a.message}{a.gameId && <span className="text-muted-foreground"> · {gameById(a.gameId)?.name}</span>}</p>
+                    <p className="min-w-0 flex-1 break-words text-xs">{a.message}{a.gameId && <span className="text-muted-foreground"> · {gameById(a.gameId)?.name}</span>}</p>
                     <time className="font-mono text-[11px] text-muted-foreground">{new Date(a.at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</time>
                   </div>
                 ))}

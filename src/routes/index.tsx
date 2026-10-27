@@ -53,7 +53,7 @@ function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
         {stats.map((s) => (
           <Link key={s.label} to={s.to} className="group rounded-lg border bg-card p-4 transition-colors hover:border-primary/40">
             <div className="flex items-center justify-between">
@@ -76,9 +76,9 @@ function Dashboard() {
                   <p className="truncate font-medium">{g.name}</p>
                   <p className="font-mono text-[11px] text-muted-foreground">App ID {g.appId}</p>
                 </div>
-                <InstallBadge installed={g.installed} />
-                <ConfigBadge status={g.configStatus} />
-                <span className="w-20 text-right text-[11px] text-muted-foreground">{timeAgo(g.lastModified)}</span>
+                <span className="hidden sm:contents"><InstallBadge installed={g.installed} />
+                <ConfigBadge status={g.configStatus} /></span>
+                <span className="w-16 shrink-0 text-right sm:w-20 text-[11px] text-muted-foreground">{timeAgo(g.lastModified)}</span>
               </Link>
             ))}
           </div>
@@ -100,8 +100,8 @@ function Dashboard() {
             {activity.slice(0, 6).map((a) => (
               <div key={a.id} className="flex items-center gap-3 px-4 py-2">
                 <ActivityIcon type={a.type} />
-                <p className="flex-1 truncate text-xs">{a.message}{a.gameId && <span className="text-muted-foreground"> · {gameById(a.gameId)?.name}</span>}</p>
-                <span className="text-[11px] text-muted-foreground">{timeAgo(a.at)}</span>
+                <p className="min-w-0 flex-1 truncate text-xs">{a.message}{a.gameId && <span className="text-muted-foreground"> · {gameById(a.gameId)?.name}</span>}</p>
+                <span className="shrink-0 text-[11px] text-muted-foreground">{timeAgo(a.at)}</span>
               </div>
             ))}
           </div>
@@ -137,5 +137,5 @@ function Meter({ label, value, detail }: { label: string; value: number; detail:
   );
 }
 function Row({ icon: Icon, k, v }: { icon: typeof Cpu; k: string; v: string }) {
-  return <div className="flex items-center gap-2"><Icon className="size-3.5" /><span>{k}</span><span className="ml-auto text-foreground">{v}</span></div>;
+  return <div className="flex items-center gap-2"><Icon className="size-3.5" /><span>{k}</span><span className="ml-auto truncate text-right text-foreground">{v}</span></div>;
 }

@@ -99,7 +99,7 @@ function SettingsPage() {
                 <Logo size={48} />
                 <div><p className="text-lg font-bold">AfScripts</p><p className="text-xs text-muted-foreground">Game Configuration & Management Utility</p></div>
               </div>
-              <dl className="grid grid-cols-[140px_1fr] gap-y-1.5 text-xs">
+              <dl className="grid grid-cols-[110px_minmax(0,1fr)] sm:grid-cols-[140px_minmax(0,1fr)] gap-y-1.5 text-xs">
                 <dt className="text-muted-foreground">Version</dt><dd>0.1.0 (preview)</dd>
                 <dt className="text-muted-foreground">Runtime</dt><dd>{getPlatform().kind === "mock" ? "Browser preview — file operations simulated" : "Native Windows"}</dd>
                 <dt className="text-muted-foreground">Data storage</dt><dd>Stored locally on this device</dd>

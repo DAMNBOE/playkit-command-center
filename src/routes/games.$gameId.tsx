@@ -65,7 +65,7 @@ function GameDetails() {
       <div className="relative overflow-hidden rounded-xl border bg-card">
         <GameCover game={game} className="absolute inset-0 rounded-none opacity-40 blur-2xl [&>div:nth-child(3)]:hidden" />
         <div className="relative flex flex-wrap items-end gap-5 p-5">
-          <GameCover game={game} className="h-36 w-56 shrink-0 shadow-2xl" />
+          <GameCover game={game} className="aspect-[14/9] w-full shrink-0 shadow-2xl sm:h-36 sm:w-56" />
           <div className="min-w-0 flex-1 space-y-2">
             <div className="flex items-center gap-2">
               <h2 className="text-2xl font-bold tracking-tight">{game.name}</h2>
@@ -104,7 +104,7 @@ function GameDetails() {
             ))}
           </div>
           <Panel title="Details" className="mt-3">
-            <dl className="grid grid-cols-[160px_1fr] gap-y-2 p-4 text-xs">
+            <dl className="grid grid-cols-[110px_minmax(0,1fr)] sm:grid-cols-[160px_minmax(0,1fr)] gap-y-2 p-4 text-xs">
               <dt className="text-muted-foreground">Installation path</dt><dd className="font-mono">{game.installPath}</dd>
               <dt className="text-muted-foreground">Configuration status</dt><dd><ConfigBadge status={game.configStatus} /></dd>
               <dt className="text-muted-foreground">Developer</dt><dd>{game.developer}</dd>
