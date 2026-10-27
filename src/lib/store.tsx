@@ -55,6 +55,47 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (hydrated) localStorage.setItem(KEY, JSON.stringify(state));
   }, [state, hydrated]);
 
+  // ---- Cloud sync: signed-in users get their state saved to their account ----
+  const [account, setAccount] = useState<{ id: string; email: string } | null>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>("off");
+  const remoteReady = useRef(false);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const load = async (user: { id: string; email?: string | undefined } | null) => {
+      remoteReady.current = false;
+      if (!user) { setAccount(null); setSyncStatus("off"); return; }
+      setAccount({ id: user.id, email: user.email ?? "" });
+      setSyncStatus("syncing");
+      const { data, error } = await supabase.from("user_state").select("state").eq("user_id", user.id).maybeSingle();
+      if (error) { setSyncStatus("error"); toast.error("Couldn't load your synced data", { description: error.message }); return; }
+      if (data?.state && Object.keys(data.state as object).length) {
+        const remote = data.state as Partial<State>;
+        setState((s) => ({ ...s, ...remote, settings: { ...defaultSettings, ...remote.settings } }));
+      } else {
+        const { error: upErr } = await supabase.from("user_state").upsert({ user_id: user.id, state: stateRef.current as never, updated_at: new Date().toISOString() });
+        if (upErr) { setSyncStatus("error"); return; }
+      }
+      remoteReady.current = true;
+      setSyncStatus("synced");
+    };
+    supabase.auth.getUser().then(({ data }) => load(data.user));
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT") void load(session?.user ?? null);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [hydrated]);
+
+  useEffect(() => {
+    if (!account || !remoteReady.current) return;
+    setSyncStatus("syncing");
+    const t = setTimeout(async () => {
+      const { error } = await supabase.from("user_state").upsert({ user_id: account.id, state: state as never, updated_at: new Date().toISOString() });
+      setSyncStatus(error ? "error" : "synced");
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [state, account]);
+
   const update: Store["update"] = useCallback((key, fn) => {
     setState((s) => ({ ...s, [key]: fn(s[key]) }));
   }, []);
@@ -72,7 +113,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const reset = useCallback(() => { localStorage.removeItem(KEY); setState(initial); }, []);
 
   const value = useMemo<Store>(() => ({
-    ...state, hydrated, update, log, notify, fail, reset,
+    ...state, hydrated, update, log, notify, fail, reset, account, syncStatus,
     gameById: (id) => state.games.find((g) => g.id === id),
   }), [state, hydrated, update, log, notify, fail, reset]);
 
