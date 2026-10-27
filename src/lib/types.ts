@@ -53,6 +53,10 @@ export interface Download {
   speedMbps: number;
   status: DownloadStatus;
   addedAt: string;
+  /** Real source URL (desktop downloads). Absent for simulated sample items. */
+  url?: string | undefined;
+  savedTo?: string | undefined;
+  error?: string | undefined;
 }
 
 export interface Plugin {

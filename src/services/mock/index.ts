@@ -36,6 +36,6 @@ export const browserServices: AppServices = {
     async apply(_gameId, files) { files.forEach((f) => memory.set(f.path, f.content)); },
   },
   // Download progress in the browser is a UI simulation (see src/lib/downloads.ts).
-  downloads: { async start() {}, async pause() {}, async cancel() {} },
+  downloads: { onProgress: () => () => {}, async start() {}, async pause() {}, async cancel() {} },
   window: { async action() { return false; } },
 };

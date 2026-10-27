@@ -11,12 +11,25 @@
   },
   "app": {
     "windows": [
-      { "title": "AfScripts", "width": 1280, "height": 800, "minWidth": 960, "minHeight": 600, "decorations": false }
-    ]
+      {
+        "title": "AfScripts",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 960,
+        "minHeight": 600,
+        "decorations": false
+      }
+    ],
+    "withGlobalTauri": true
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis", "msi"],
-    "icon": ["icons/icon.ico"]
+    "targets": [
+      "nsis",
+      "msi"
+    ],
+    "icon": [
+      "icons/icon.ico"
+    ]
   }
 }
