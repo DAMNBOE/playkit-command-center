@@ -47,7 +47,7 @@ export type DownloadStatus = "queued" | "active" | "paused" | "completed" | "fai
 export interface Download {
   id: string;
   name: string;
-  gameId?: string;
+  gameId?: string | undefined;
   sizeMb: number;
   progress: number; // 0-100
   speedMbps: number;
@@ -72,7 +72,7 @@ export interface Activity {
   id: string;
   type: ActivityType;
   message: string;
-  gameId?: string;
+  gameId?: string | undefined;
   at: string;
 }
 

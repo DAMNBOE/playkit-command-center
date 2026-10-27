@@ -18,12 +18,12 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { getPlatform } from "@/services/platform";
 import { cn } from "@/lib/utils";
 
-type Search = { file?: string; game?: string };
+type Search = { file?: string | undefined; game?: string | undefined };
 
 export const Route = createFileRoute("/configurations")({
   validateSearch: (s: Record<string, unknown>): Search => ({
-    file: typeof s.file === "string" ? s.file : undefined,
-    game: typeof s.game === "string" ? s.game : undefined,
+    file: typeof s["file"] === "string" ? s["file"] : undefined,
+    game: typeof s["game"] === "string" ? s["game"] : undefined,
   }),
   head: () => ({
     meta: [
