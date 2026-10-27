@@ -1,0 +1,44 @@
+# Builds the AfScripts Windows installers (.exe + .msi) and attaches them to a GitHub Release.
+# Run it from the Actions tab ("Run workflow"), or push a tag like v0.1.0.
+name: Windows installer
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Generate app icons from the AfScripts logo
+        run: bunx @tauri-apps/cli@^2 icon src/assets/logo-segmented.png
+
+      - name: Build and publish installers
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AFSCRIPTS_DESKTOP: "1"
+        with:
+          tauriScript: bunx @tauri-apps/cli@^2
+          tagName: v__VERSION__
+          releaseName: AfScripts v__VERSION__
+          releaseBody: Windows installer for AfScripts. Download the .exe (recommended) or .msi below.
+          releaseDraft: false
+          prerelease: false
