@@ -1,6 +1,6 @@
 // Ensures the static desktop build has dist/client/index.html (Tauri's frontendDist).
 // The SPA shell's location/name differs between platforms, so search known spots.
-import { existsSync, copyFileSync, mkdirSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const target = join("dist", "client", "index.html");
@@ -25,9 +25,16 @@ function find() {
   return walk("dist") ?? walk(".output");
 }
 
-if (existsSync(target)) { console.log("index.html already present"); process.exit(0); }
-const src = find();
+const src = existsSync(target) ? target : find();
 if (!src) { console.error("No SPA shell html found in build output"); process.exit(1); }
 mkdirSync(join("dist", "client"), { recursive: true });
-copyFileSync(src, target);
-console.log(`Copied ${src} -> ${target}`);
+
+// Tauri serves the app from a custom protocol where root-absolute URLs ("/assets/...")
+// fail to load, leaving the window unstyled. Rewrite every root-absolute asset
+// reference (including the "/./" form emitted for preloads) to a relative one.
+let html = readFileSync(src, "utf8");
+html = html
+  .replace(/(["'(=])\/\.\//g, "$1./")
+  .replace(/(["'(=])\/(assets\/)/g, "$1./$2");
+writeFileSync(target, html);
+console.log(`Wrote ${target} (from ${src}) with relative asset paths`);
