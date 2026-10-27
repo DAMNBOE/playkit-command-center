@@ -37,7 +37,7 @@ export function WindowsDownload({ collapsed }: { collapsed: boolean }) {
         </DialogHeader>
         <div className="space-y-2">
           {RELEASE.files.map((f) => (
-            <a key={f.url} href={f.url} className="flex items-center justify-between gap-3 rounded-md border border-border p-3 hover:bg-accent">
+            <a key={f.url} href={f.url} target="_blank" rel="noopener noreferrer" download className="flex items-center justify-between gap-3 rounded-md border border-border p-3 hover:bg-accent">
               <div><p className="text-sm font-medium">{f.label}</p><p className="text-xs text-muted-foreground">{f.note} · {mb(f.bytes)}</p></div>
               <Download className="size-4 shrink-0" />
             </a>
