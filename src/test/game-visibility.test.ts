@@ -23,3 +23,12 @@ describe("Search-only game visibility everywhere", () => {
     expect(records).toHaveLength(3);
   });
 });
+import { parseAppId } from "@/lib/game-visibility";
+describe("parseAppId", () => {
+  it("accepts App ID formats", () => {
+    expect(parseAppId("730")).toBe("730");
+    expect(parseAppId(" App ID 578080 ")).toBe("578080");
+    expect(parseAppId("https://store.steampowered.com/app/570/Dota_2/")).toBe("570");
+    expect(parseAppId("Portal 2")).toBeNull();
+  });
+});

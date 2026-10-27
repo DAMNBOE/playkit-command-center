@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { parseAppId } from "./game-visibility";
 
 export interface SteamSearchResult { appId: number; name: string; image: string }
 
@@ -10,12 +11,13 @@ export const searchSteamStore = createServerFn({ method: "GET" })
     return { term };
   })
   .handler(async ({ data }): Promise<SteamSearchResult[]> => {
-    if (/^\d+$/.test(data.term)) {
-      const r = await fetch(`https://store.steampowered.com/api/appdetails?appids=${data.term}&filters=basic`);
+    const appId = parseAppId(data.term);
+    if (appId) {
+      const r = await fetch(`https://store.steampowered.com/api/appdetails?appids=${appId}&filters=basic`);
       if (!r.ok) throw new Error(`Steam store returned ${r.status}`);
       const j = (await r.json()) as Record<string, { success: boolean; data?: { name: string; header_image: string } }>;
       const d = j[data.term];
-      return d?.success && d.data ? [{ appId: Number(data.term), name: d.data.name, image: d.data.header_image }] : [];
+      return d?.success && d.data ? [{ appId: Number(appId), name: d.data.name, image: d.data.header_image }] : [];
     }
     const r = await fetch(`https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(data.term)}&l=english&cc=US`);
     if (!r.ok) throw new Error(`Steam store returned ${r.status}`);

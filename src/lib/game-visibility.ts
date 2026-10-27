@@ -1,6 +1,17 @@
 import type { Game } from "./types";
 
+/** Accepts "730", "App ID 730", "#730", or a Steam store URL and returns the bare App ID. */
+export function parseAppId(query: string): string | null {
+  const q = query.trim();
+  const url = q.match(/\/app\/(\d+)/i);
+  if (url) return url[1];
+  const m = q.match(/^(?:app\s*id\s*[:#]?\s*|#)?\s*(\d+)$/i);
+  return m ? m[1] : null;
+}
+
 export function matchesGameIdentity(game: Game, query: string): boolean {
+  const appId = parseAppId(query);
+  if (appId) return String(game.appId) === appId;
   const identity = query.trim().toLowerCase();
   if (!identity) return false;
   // Numeric identities must be a complete App ID, not a broad numeric prefix.
