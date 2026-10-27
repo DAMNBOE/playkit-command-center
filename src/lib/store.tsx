@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import type { Activity, ActivityType, ConfigFile, Download, Game, Plugin, Preset, Settings } from "./types";
+import { supabase } from "@/integrations/supabase/client";
 import { defaultSettings, sampleActivity, sampleConfigs, sampleDownloads, sampleGames, samplePlugins, samplePresets } from "@/mocks/sample-data";
 
 interface State {
@@ -21,8 +22,12 @@ const initial: State = {
 const KEY = "afscripts:state:v1";
 export const uid = () => Math.random().toString(36).slice(2, 10);
 
+export type SyncStatus = "off" | "syncing" | "synced" | "error";
+
 interface Store extends State {
   hydrated: boolean;
+  account: { id: string; email: string } | null;
+  syncStatus: SyncStatus;
   update: <K extends keyof State>(key: K, fn: (prev: State[K]) => State[K]) => void;
   log: (type: ActivityType, message: string, gameId?: string) => void;
   notify: (title: string, description?: string) => void;
@@ -115,7 +120,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const value = useMemo<Store>(() => ({
     ...state, hydrated, update, log, notify, fail, reset, account, syncStatus,
     gameById: (id) => state.games.find((g) => g.id === id),
-  }), [state, hydrated, update, log, notify, fail, reset]);
+  }), [state, hydrated, update, log, notify, fail, reset, account, syncStatus]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
