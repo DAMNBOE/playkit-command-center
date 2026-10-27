@@ -26,6 +26,8 @@ interface Store extends State {
   update: <K extends keyof State>(key: K, fn: (prev: State[K]) => State[K]) => void;
   log: (type: ActivityType, message: string, gameId?: string) => void;
   notify: (title: string, description?: string) => void;
+  /** Error/warning feedback — always shown, never styled as success. */
+  fail: (title: string, description?: string) => void;
   reset: () => void;
   gameById: (id?: string) => Game | undefined;
 }
@@ -65,12 +67,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (stateRef.current.settings.notifications) toast.success(title, { description });
   }, []);
 
+  const fail = useCallback((title: string, description?: string) => { toast.error(title, { description }); }, []);
+
   const reset = useCallback(() => { localStorage.removeItem(KEY); setState(initial); }, []);
 
   const value = useMemo<Store>(() => ({
-    ...state, hydrated, update, log, notify, reset,
+    ...state, hydrated, update, log, notify, fail, reset,
     gameById: (id) => state.games.find((g) => g.id === id),
-  }), [state, hydrated, update, log, notify, reset]);
+  }), [state, hydrated, update, log, notify, fail, reset]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
