@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { getServices, type WindowAction } from "@/services";
 import { EnvironmentBadge } from "./EnvironmentBadge";
+import { WindowsDownload } from "./WindowsDownload";
 
 export const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -187,6 +188,7 @@ function SidebarContent({ collapsed, isActive, activeDl, onToggle }: {
         })}
       </nav>
       <div className="border-t border-sidebar-border p-2">
+        <div className="mb-2"><WindowsDownload collapsed={collapsed} /></div>
         {onToggle && (
           <Tooltip>
             <TooltipTrigger asChild>
