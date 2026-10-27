@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
-  Activity as ActivityIcon, Bell, ChevronsLeft, ChevronsRight, Copy, Download, FileCog, Gamepad2,
+  Activity as ActivityIcon, Bell, ChevronsLeft, ChevronsRight, Download, FileCog, Gamepad2,
   Layers, LayoutDashboard, Minus, Puzzle, Search, Settings, Square, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -256,4 +256,3 @@ function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
   );
 }
 
-export { Copy };
