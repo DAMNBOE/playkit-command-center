@@ -40,10 +40,10 @@ function SettingsPage() {
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) => update("settings", (s) => ({ ...s, [k]: v }));
 
   return (
-    <div className="flex gap-5">
-      <nav className="w-48 shrink-0 space-y-0.5">
+    <div className="flex flex-col gap-3 md:flex-row md:gap-5">
+      <nav className="-mx-1 flex shrink-0 gap-1 overflow-x-auto px-1 pb-1 md:mx-0 md:block md:w-48 md:space-y-0.5 md:overflow-visible md:px-0 md:pb-0">
         {SECTIONS.map((s) => (
-          <button key={s} onClick={() => setSection(s)} className={cn("block w-full rounded-md px-3 py-1.5 text-left text-[13px]", section === s ? "bg-accent font-medium" : "text-muted-foreground hover:bg-accent/50 hover:text-foreground")}>{s}</button>
+          <button key={s} onClick={() => setSection(s)} className={cn("block shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-left text-[13px] md:w-full", section === s ? "bg-accent font-medium" : "text-muted-foreground hover:bg-accent/50 hover:text-foreground")}>{s}</button>
         ))}
       </nav>
       <div key={section} className="animate-fade-up min-w-0 max-w-2xl flex-1 rounded-lg border bg-card">
@@ -121,8 +121,8 @@ function SettingsPage() {
 
 function Item({ label, desc, children }: { label: string; desc?: string; children: ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-6 px-5 py-3.5">
-      <div><p className="text-[13px] font-medium">{label}</p>{desc && <p className="text-[11px] text-muted-foreground">{desc}</p>}</div>
+    <div className="flex flex-col items-start justify-between gap-2 px-4 py-3.5 sm:flex-row sm:items-center sm:gap-6 sm:px-5">
+      <div className="min-w-0"><p className="text-[13px] font-medium">{label}</p>{desc && <p className="text-[11px] text-muted-foreground">{desc}</p>}</div>
       {children}
     </div>
   );

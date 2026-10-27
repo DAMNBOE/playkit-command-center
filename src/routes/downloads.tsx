@@ -74,15 +74,15 @@ function Downloads() {
   const Row = ({ d }: { d: Download }) => {
     const m = statusMeta[d.status];
     return (
-      <div className="flex items-center gap-4 border-b px-4 py-3 last:border-0">
+      <div className="flex items-center gap-3 border-b px-3 py-3 last:border-0 sm:gap-4 sm:px-4">
         <div className={cn("grid size-8 shrink-0 place-items-center rounded-md bg-muted", m.cls)}><m.icon className="size-4" /></div>
         <div className="min-w-0 flex-1 space-y-1.5">
-          <div className="flex items-baseline gap-2">
+          <div className="flex min-w-0 flex-col sm:flex-row sm:items-baseline sm:gap-2">
             <p className="truncate font-medium">{d.name}</p>
-            <span className="text-[11px] text-muted-foreground">{gameById(d.gameId)?.name}</span>
+            <span className="truncate text-[11px] text-muted-foreground">{gameById(d.gameId)?.name}</span>
           </div>
           <Progress value={d.progress} className={cn("h-1.5", d.status === "failed" && "[&>div]:bg-destructive", d.status === "completed" && "[&>div]:bg-success")} />
-          <div className="flex gap-4 text-[11px] text-muted-foreground tabular-nums">
+          <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-muted-foreground tabular-nums">
             <span className={m.cls}>{m.label}</span>
             <span>{fmtMb((d.progress / 100) * d.sizeMb)} / {fmtMb(d.sizeMb)}</span>
             {d.status === "active" && <span>{d.speedMbps.toFixed(1)} MB/s</span>}
@@ -90,7 +90,7 @@ function Downloads() {
             <span className="ml-auto">Added {timeAgo(d.addedAt)}</span>
           </div>
         </div>
-        <div className="flex gap-1">
+        <div className="flex shrink-0 flex-col gap-1 sm:flex-row">
           {d.status === "active" && <Act label="Pause" icon={Pause} onClick={() => pause(d)} />}
           {(d.status === "paused") && <Act label="Resume" icon={Play} onClick={() => resume(d)} />}
           {d.status === "failed" && <Act label="Retry" icon={RotateCw} onClick={() => retry(d)} />}
@@ -103,7 +103,7 @@ function Downloads() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-2.5 text-xs">
-        <FlaskConical className="size-4 text-warning" />
+        <FlaskConical className="size-4 shrink-0 text-warning" />
         <span><strong className="font-semibold">Simulated downloads.</strong> Progress shown here is a preview simulation — nothing is downloaded to your PC until the Windows app is connected.</span>
       </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -112,14 +112,14 @@ function Downloads() {
         ))}
       </div>
       <Tabs defaultValue="all">
-        <div className="flex items-center">
-          <TabsList>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="-mx-1 max-w-full overflow-x-auto px-1"><TabsList>
             <TabsTrigger value="all">All ({groups.all.length})</TabsTrigger>
             <TabsTrigger value="active">Active ({groups.active.length})</TabsTrigger>
             <TabsTrigger value="queued">Queue ({groups.queued.length})</TabsTrigger>
             <TabsTrigger value="completed">Completed ({groups.completed.length})</TabsTrigger>
             <TabsTrigger value="failed">Failed ({groups.failed.length})</TabsTrigger>
-          </TabsList>
+          </TabsList></div>
           <Button size="sm" variant="ghost" className="ml-auto" onClick={clearCompleted} disabled={!groups.completed.length}>Clear completed</Button>
         </div>
         {(Object.keys(groups) as (keyof typeof groups)[]).map((k) => (
