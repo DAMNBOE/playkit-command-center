@@ -1,0 +1,22 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "AfScripts",
+  "version": "0.1.0",
+  "identifier": "com.afscripts.app",
+  "build": {
+    "devUrl": "http://localhost:8080",
+    "frontendDist": "../dist/client",
+    "beforeDevCommand": "bun run dev",
+    "beforeBuildCommand": "bun run build"
+  },
+  "app": {
+    "windows": [
+      { "title": "AfScripts", "width": 1280, "height": 800, "minWidth": 960, "minHeight": 600, "decorations": false }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis", "msi"],
+    "icon": ["icons/icon.ico"]
+  }
+}
