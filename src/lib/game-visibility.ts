@@ -4,9 +4,9 @@ import type { Game } from "./types";
 export function parseAppId(query: string): string | null {
   const q = query.trim();
   const url = q.match(/\/app\/(\d+)/i);
-  if (url) return url[1];
+  if (url) return url[1] ?? null;
   const m = q.match(/^(?:app\s*id\s*[:#]?\s*|#)?\s*(\d+)$/i);
-  return m ? m[1] : null;
+  return m ? m[1] ?? null : null;
 }
 
 export function matchesGameIdentity(game: Game, query: string): boolean {
