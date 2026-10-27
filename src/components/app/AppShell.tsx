@@ -39,7 +39,7 @@ const ACCENTS = {
 export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const { settings, downloads, activity } = useStore();
+  const { settings, downloads, activity, hydrated } = useStore();
   const path = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
@@ -152,7 +152,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </PopoverTrigger>
                 <PopoverContent align="end" className="w-80 p-0">
                   <div className="border-b px-3 py-2 text-xs font-semibold">Notifications</div>
-                  <div className="max-h-72 overflow-auto">
+                  <div className="max-h-72 overflow-auto" suppressHydrationWarning>
                     {activity.slice(0, 6).map((a) => (
                       <div key={a.id} className="flex gap-2.5 border-b px-3 py-2 last:border-0">
                         <ActIcon type={a.type} />
@@ -166,7 +166,14 @@ export function AppShell({ children }: { children: ReactNode }) {
             <WindowControls />
           </header>
           <main className="min-h-0 flex-1 overflow-auto">
-            <div key={path} className="animate-fade-up mx-auto max-w-[1400px] p-5">{children}</div>
+            {hydrated ? (
+              <div key={path} className="animate-fade-up mx-auto max-w-[1400px] p-5">{children}</div>
+            ) : (
+              <div className="mx-auto max-w-[1400px] space-y-3 p-5" aria-busy="true">
+                <div className="grid grid-cols-4 gap-3">{[0, 1, 2, 3].map((i) => <div key={i} className="h-24 animate-pulse rounded-lg bg-card" />)}</div>
+                <div className="h-80 animate-pulse rounded-lg bg-card" />
+              </div>
+            )}
           </main>
         </div>
       </div>
