@@ -28,7 +28,7 @@ jobs:
         run: bun install
 
       - name: Generate app icons from the AfScripts logo
-        run: bunx @tauri-apps/cli@^2 icon src/assets/logo-segmented.png
+        run: bunx @tauri-apps/cli@^2 icon src-tauri/app-icon.png
 
       - name: Build and publish installers
         uses: tauri-apps/tauri-action@v0
