@@ -5,7 +5,8 @@ import {
   Layers, LayoutDashboard, Menu, Minus, Puzzle, Search, Settings, Square, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { timeAgo, useStore } from "@/lib/store";
+import { timeAgo, useStore, useGameVisibility } from "@/lib/store";
+import { GameIdentitySearch } from "./GameIdentitySearch";
 import { Logo, ActivityIcon as ActIcon } from "./bits";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -43,7 +44,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const { settings, downloads, activity, hydrated } = useStore();
+  const { settings, hydrated } = useStore();
+  const { downloads, activity } = useGameVisibility();
   const path = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
@@ -129,7 +131,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </header>
           <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
             {hydrated ? (
-              <div key={path} className="animate-fade-up mx-auto w-full max-w-[1400px] p-3 sm:p-5">{children}</div>
+              <div key={path} className="animate-fade-up mx-auto w-full max-w-[1400px] p-3 sm:p-5"><GameIdentitySearch />{children}</div>
             ) : (
               <div className="mx-auto max-w-[1400px] space-y-3 p-3 sm:p-5" aria-busy="true">
                 <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{[0, 1, 2, 3].map((i) => <div key={i} className="h-24 animate-pulse rounded-lg bg-card" />)}</div>
@@ -247,13 +249,14 @@ function WindowControls() {
 }
 
 function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
-  const { games, configs, presets } = useStore();
+  const { games, configs, presets } = useGameVisibility();
+  const { gameQuery, setGameQuery } = useStore();
   const navigate = useNavigate();
   const go = (fn: () => void) => { onOpenChange(false); fn(); };
   const gameName = useMemo(() => Object.fromEntries(games.map((g) => [g.id, g.name])), [games]);
   return (
-    <CommandDialog open={open} onOpenChange={onOpenChange}>
-      <CommandInput placeholder="Search AfScripts…" />
+    <CommandDialog open={open} onOpenChange={onOpenChange} shouldFilter={false}>
+      <CommandInput placeholder="Game name or Steam App ID" value={gameQuery} onValueChange={setGameQuery} />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
         <CommandGroup heading="Games">

@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { uid, useStore } from "@/lib/store";
+import { uid, useStore, useGameVisibility } from "@/lib/store";
+import { GameIdentitySearch } from "./GameIdentitySearch";
 import type { ConfigFile, Preset } from "@/lib/types";
 import { getEnvironment, getServices } from "@/services";
 import { Loader2, Upload } from "lucide-react";
@@ -94,7 +95,8 @@ const extFormat = (name: string): ConfigFile["format"] => {
 };
 
 export function ImportConfigDialog({ open, onOpenChange, defaultGameId, onImported }: { open: boolean; onOpenChange: (o: boolean) => void; defaultGameId?: string | undefined; onImported?: (id: string) => void }) {
-  const { games, update, log, notify } = useStore();
+  const { update, log, notify } = useStore();
+  const { games } = useGameVisibility();
   const [gameId, setGameId] = useState(defaultGameId ?? "");
   const [file, setFile] = useState<{ name: string; content: string } | null>(null);
   const [error, setError] = useState("");
@@ -127,6 +129,7 @@ export function ImportConfigDialog({ open, onOpenChange, defaultGameId, onImport
         <div className="space-y-3">
           <div className="space-y-1.5">
             <Label>Game</Label>
+            <GameIdentitySearch />
             <Select value={gameId} onValueChange={setGameId}>
               <SelectTrigger><SelectValue placeholder="Select a game" /></SelectTrigger>
               <SelectContent>{games.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
@@ -146,7 +149,8 @@ export function ImportConfigDialog({ open, onOpenChange, defaultGameId, onImport
 }
 
 export function PresetDialog({ open, onOpenChange, preset, defaultGameId }: { open: boolean; onOpenChange: (o: boolean) => void; preset?: Preset | null; defaultGameId?: string | undefined }) {
-  const { games, presets, update, log, notify } = useStore();
+  const { presets, update, log, notify } = useStore();
+  const { games } = useGameVisibility();
   const [name, setName] = useState("");
   const [gameId, setGameId] = useState("");
   const [description, setDescription] = useState("");
@@ -187,6 +191,7 @@ export function PresetDialog({ open, onOpenChange, preset, defaultGameId }: { op
           <div className="space-y-1.5"><Label>Preset name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Competitive Low-Latency" /><FieldError msg={errors.name} /></div>
           <div className="space-y-1.5">
             <Label>Associated game</Label>
+            <GameIdentitySearch />
             <Select value={gameId} onValueChange={setGameId}>
               <SelectTrigger><SelectValue placeholder="Select a game" /></SelectTrigger>
               <SelectContent>{games.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>

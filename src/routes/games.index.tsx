@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { RefreshCw, Gamepad2, LayoutGrid, List, Plus, Search, Star } from "lucide-react";
-import { useStore, fmtDate, timeAgo, uid } from "@/lib/store";
+import { useStore, useGameVisibility, fmtDate, timeAgo, uid } from "@/lib/store";
 import { getServices, isDesktopRuntime } from "@/services";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ConfigBadge, EmptyState, GameCover, InstallBadge, PageToolbar } from "@/components/app/bits";
@@ -30,7 +30,8 @@ type Sort = "recent" | "name" | "appId" | "size";
 type Filter = "all" | "installed" | "not-installed" | "configured" | "unconfigured" | "favorites";
 
 function GamesLibrary() {
-  const { games, update, hydrated, settings, log, notify, fail } = useStore();
+  const { update, hydrated, settings, log, notify, fail, gameQuery: q } = useStore();
+  const { games } = useGameVisibility();
   const [scanning, setScanning] = useState(false);
   const desktop = isDesktopRuntime();
 
@@ -56,16 +57,13 @@ function GamesLibrary() {
     } catch (e) { fail("Steam scan failed", (e as Error).message); }
     finally { setScanning(false); }
   };
-  const [q, setQ] = useState("");
   const [sort, setSort] = useState<Sort>("recent");
   const [filter, setFilter] = useState<Filter>("all");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [addOpen, setAddOpen] = useState(false);
 
   const list = useMemo(() => {
-    const s = q.trim().toLowerCase();
     return games
-      .filter((g) => !s || g.name.toLowerCase().includes(s) || String(g.appId).includes(s) || g.genre.toLowerCase().includes(s))
       .filter((g) => {
         switch (filter) {
           case "installed": return g.installed;
@@ -89,7 +87,7 @@ function GamesLibrary() {
 
   return (
     <div>
-      {!q && filter === "all" && (
+      {q.trim() && recent.length > 0 && filter === "all" && (
         <div className="mb-5">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Recently managed</p>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -104,10 +102,6 @@ function GamesLibrary() {
       )}
 
       <PageToolbar>
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, App ID, genre" className="h-8 pl-8 text-xs" />
-        </div>
         <Select value={filter} onValueChange={(v) => setFilter(v as Filter)}>
           <SelectTrigger className="h-8 w-[calc(50%-4px)] text-xs sm:w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -145,7 +139,7 @@ function GamesLibrary() {
       {!hydrated ? (
         <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">{Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-56" />)}</div>
       ) : list.length === 0 ? (
-        <div className="rounded-lg border bg-card"><EmptyState icon={Gamepad2} title="No games match" description="Try a different search or filter." action={<Button variant="secondary" size="sm" onClick={() => { setQ(""); setFilter("all"); }}>Clear filters</Button>} /></div>
+        <div className="rounded-lg border bg-card"><EmptyState icon={Gamepad2} title={q.trim() ? "No games match" : "No game selected"} action={q.trim() ? <Button variant="secondary" size="sm" onClick={() => setFilter("all")}>Clear filters</Button> : undefined} /></div>
       ) : view === "grid" ? (
         <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
           {list.map((g) => <GameCard key={g.id} game={g} onFav={() => toggleFav(g.id)} />)}

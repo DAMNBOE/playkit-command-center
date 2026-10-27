@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Archive, ArrowLeft, FileCog, FileDown, FileUp, Folder, FileText, Layers, Plus, Star } from "lucide-react";
-import { fmtDate, timeAgo, useStore } from "@/lib/store";
+import { fmtDate, timeAgo, useStore, useGameVisibility } from "@/lib/store";
 import { ActivityIcon, ConfigBadge, EmptyState, GameCover, InstallBadge, Panel } from "@/components/app/bits";
 import { ImportConfigDialog, PresetDialog } from "@/components/app/dialogs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,7 +27,8 @@ const fmtSize = (b: number) => (b > 1e6 ? `${(b / 1e6).toFixed(1)} MB` : b > 1e3
 
 function GameDetails() {
   const { gameId } = Route.useParams();
-  const { gameById, configs, presets, activity, update, hydrated, fail } = useStore();
+  const { update, hydrated, fail } = useStore();
+  const { gameById, configs, presets, activity } = useGameVisibility();
   const navigate = useNavigate();
   const { backup, exportFile } = useConfigActions();
   const [importOpen, setImportOpen] = useState(false);

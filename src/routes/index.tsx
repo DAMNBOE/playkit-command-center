@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowUpRight, CheckCircle2, Cpu, Download, FileCog, FileDown, Gamepad2, HardDrive, Layers, Plus } from "lucide-react";
-import { useStore, timeAgo } from "@/lib/store";
+import { useStore, useGameVisibility, timeAgo } from "@/lib/store";
 import { ActivityIcon, ConfigBadge, GameCover, InstallBadge, Panel } from "@/components/app/bits";
 import { AddGameDialog, ImportConfigDialog, PresetDialog } from "@/components/app/dialogs";
 import { Progress } from "@/components/ui/progress";
@@ -19,7 +19,8 @@ export const Route = createFileRoute("/")({
 });
 
 function Dashboard() {
-  const { games, configs, presets, activity, downloads, plugins, gameById } = useStore();
+  const { plugins } = useStore();
+  const { games, configs, presets, activity, downloads, gameById } = useGameVisibility();
   const navigate = useNavigate();
   const [addOpen, setAddOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);

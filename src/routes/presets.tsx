@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Layers, MoreHorizontal, Pencil, Plus, Search, Trash2, FileUp } from "lucide-react";
-import { fmtDate, useStore } from "@/lib/store";
+import { fmtDate, useStore, useGameVisibility } from "@/lib/store";
 import { EmptyState, GameCover, PageToolbar, downloadFile } from "@/components/app/bits";
 import { PresetDialog } from "@/components/app/dialogs";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,8 @@ export const Route = createFileRoute("/presets")({
 });
 
 function Presets() {
-  const { presets, games, gameById, update, log, notify } = useStore();
+  const { update, log, notify } = useStore();
+  const { presets, games, gameById } = useGameVisibility();
   const [q, setQ] = useState("");
   const [game, setGame] = useState("all");
   const [open, setOpen] = useState(false);
