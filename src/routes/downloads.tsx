@@ -17,6 +17,8 @@ import { tickDownloads } from "@/lib/downloads";
 export const Route = createFileRoute("/downloads")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "Downloads — AfScripts" },
       { name: "description", content: "Download queue with progress, speed and status controls in AfScripts." },
       { property: "og:title", content: "Downloads — AfScripts" },

@@ -9,6 +9,8 @@ import { Progress } from "@/components/ui/progress";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "Dashboard — AfScripts" },
       { name: "description", content: "Overview of your games, configurations, presets and recent activity in AfScripts." },
       { property: "og:title", content: "Dashboard — AfScripts" },

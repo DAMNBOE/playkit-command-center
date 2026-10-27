@@ -10,6 +10,8 @@ import type { ActivityType } from "@/lib/types";
 export const Route = createFileRoute("/activity")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "Activity — AfScripts" },
       { name: "description", content: "History of configuration changes, imports, exports, backups and presets." },
       { property: "og:title", content: "Activity — AfScripts" },

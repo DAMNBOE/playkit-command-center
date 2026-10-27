@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/plugins")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "Plugins — AfScripts" },
       { name: "description", content: "Enable, disable and manage AfScripts plugins." },
       { property: "og:title", content: "Plugins — AfScripts" },

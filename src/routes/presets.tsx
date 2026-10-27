@@ -14,6 +14,8 @@ import type { Preset } from "@/lib/types";
 export const Route = createFileRoute("/presets")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "Presets — AfScripts" },
       { name: "description", content: "Create, edit, export and delete configuration presets for your games." },
       { property: "og:title", content: "Presets — AfScripts" },

@@ -17,6 +17,8 @@ import type { Game } from "@/lib/types";
 export const Route = createFileRoute("/games/")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "My Games — AfScripts" },
       { name: "description", content: "Browse, search, sort and filter your game library in AfScripts." },
       { property: "og:title", content: "My Games — AfScripts" },

@@ -18,6 +18,8 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/settings")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "Settings — AfScripts" },
       { name: "description", content: "General, appearance, library, configuration, download and plugin settings for AfScripts." },
       { property: "og:title", content: "Settings — AfScripts" },

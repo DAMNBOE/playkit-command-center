@@ -27,6 +27,8 @@ export const Route = createFileRoute("/configurations")({
   }),
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "Configuration Manager — AfScripts" },
       { name: "description", content: "View, edit, back up, restore and compare game configuration files in AfScripts." },
       { property: "og:title", content: "Configuration Manager — AfScripts" },

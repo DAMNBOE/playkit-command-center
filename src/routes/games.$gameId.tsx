@@ -14,6 +14,8 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/games/$gameId")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "Game Details — AfScripts" },
       { name: "description", content: "Installation, configuration files, presets and activity for a game in AfScripts." },
       { property: "og:title", content: "Game Details — AfScripts" },
