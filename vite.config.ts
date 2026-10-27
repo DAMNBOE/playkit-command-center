@@ -10,6 +10,9 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 const desktop = process.env['AFSCRIPTS_DESKTOP'] === "1";
 
 export default defineConfig({
+  // Tauri serves the app from a custom protocol, so absolute "/assets/..." URLs fail to load
+  // (white, unstyled window). Relative paths keep CSS/JS/images working inside the desktop app.
+  vite: desktop ? { base: "./" } : {},
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
