@@ -16,3 +16,6 @@
 5. Move persisted state from localStorage to files in the app data dir when ready.
 6. `bunx tauri dev` to test, `bunx tauri build` to produce `.msi` / NSIS `.exe` in `src-tauri/target/release/bundle/`.
 7. Code-sign the installer (Authenticode certificate) to avoid SmartScreen warnings.
+
+## Automated build (GitHub Actions)
+`.github/workflows/windows-release.yml` builds on a Windows runner: installs Bun + Rust, generates icons from `src/assets/logo-segmented.png`, runs `bun run build:desktop` (static SPA) and publishes `.exe`/`.msi` to a GitHub Release tagged `v<version>` (version from `tauri.conf.json`). Trigger via Actions → "Windows installer" → Run workflow, or push a `v*` tag. Copy the release asset URL into the WindowsDownload button.
