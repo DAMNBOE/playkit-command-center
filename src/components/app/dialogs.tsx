@@ -111,7 +111,7 @@ export function ImportConfigDialog({ open, onOpenChange, defaultGameId, onImport
   };
 
   const submit = () => {
-    if (!gameId) return setError("Select a game");
+    if (!games.some((g) => g.id === gameId)) return setError("Select a matching game");
     if (!file) return setError("Choose a configuration file");
     const id = uid();
     update("configs", (cs) => [{ id, gameId, name: file.name, path: `imported\\${file.name}`, format: extFormat(file.name), content: file.content, modifiedAt: new Date().toISOString(), backups: [] }, ...cs]);
@@ -130,7 +130,7 @@ export function ImportConfigDialog({ open, onOpenChange, defaultGameId, onImport
           <div className="space-y-1.5">
             <Label>Game</Label>
             <GameIdentitySearch />
-            <Select value={gameId} onValueChange={setGameId}>
+            <Select value={games.some((g) => g.id === gameId) ? gameId : ""} onValueChange={setGameId}>
               <SelectTrigger><SelectValue placeholder="Select a game" /></SelectTrigger>
               <SelectContent>{games.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
             </Select>
@@ -168,7 +168,7 @@ export function PresetDialog({ open, onOpenChange, preset, defaultGameId }: { op
     if (n.length < 3) e.name = "Name must be at least 3 characters";
     else if (n.length > 48) e.name = "Name must be 48 characters or fewer";
     else if (presets.some((p) => p.name.toLowerCase() === n.toLowerCase() && p.id !== preset?.id)) e.name = "A preset with this name already exists";
-    if (!gameId) e.gameId = "Select a game";
+    if (!games.some((g) => g.id === gameId)) e.gameId = "Select a matching game";
     if (description.length > 200) e.description = "Description must be 200 characters or fewer";
     setErrors(e);
     if (Object.keys(e).length) return;
@@ -192,7 +192,7 @@ export function PresetDialog({ open, onOpenChange, preset, defaultGameId }: { op
           <div className="space-y-1.5">
             <Label>Associated game</Label>
             <GameIdentitySearch />
-            <Select value={gameId} onValueChange={setGameId}>
+            <Select value={games.some((g) => g.id === gameId) ? gameId : ""} onValueChange={setGameId}>
               <SelectTrigger><SelectValue placeholder="Select a game" /></SelectTrigger>
               <SelectContent>{games.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
             </Select>
