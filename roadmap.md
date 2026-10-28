@@ -1,4 +1,5 @@
 # Tasks
+- [ ] Integrate official Steam metadata, name/App ID search, linked profiles and owned games without replacing native installation detection (owned-games API requires a secure Steam Web API key).
 - [x] Audit desktop functionality and provide incomplete-feature list in the staged completion plan.
 - [x] Implement measured Steam detection, authorized configuration writes, native backup/restore, and Steam launch; filesystem tests and emulated UI passed.
 - [x] Connect file-snapshot presets, authorized native downloads, and verified-install dashboard data; remove simulated progress and disable unsupported settings.
