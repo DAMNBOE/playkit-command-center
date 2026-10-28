@@ -20,6 +20,8 @@ import { Route as PresetsRouteImport } from './routes/presets'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as GamesIndexRouteImport } from './routes/games.index'
 import { Route as GamesGameIdRouteImport } from './routes/games.$gameId'
+import { Route as SteamCompleteRouteImport } from './routes/steam/complete'
+import { Route as ApiPublicSteamCallbackRouteImport } from './routes/api/public/steam/callback'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -76,6 +78,16 @@ const GamesGameIdRoute = GamesGameIdRouteImport.update({
   path: '/$gameId',
   getParentRoute: () => GamesRoute,
 } as any)
+const SteamCompleteRoute = SteamCompleteRouteImport.update({
+  id: '/steam/complete',
+  path: '/steam/complete',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicSteamCallbackRoute = ApiPublicSteamCallbackRouteImport.update({
+  id: '/api/public/steam/callback',
+  path: '/api/public/steam/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -88,7 +100,9 @@ export interface FileRoutesByFullPath {
   '/presets': typeof PresetsRoute
   '/settings': typeof SettingsRoute
   '/games/$gameId': typeof GamesGameIdRoute
+  '/steam/complete': typeof SteamCompleteRoute
   '/games/': typeof GamesIndexRoute
+  '/api/public/steam/callback': typeof ApiPublicSteamCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -100,7 +114,9 @@ export interface FileRoutesByTo {
   '/presets': typeof PresetsRoute
   '/settings': typeof SettingsRoute
   '/games/$gameId': typeof GamesGameIdRoute
+  '/steam/complete': typeof SteamCompleteRoute
   '/games': typeof GamesIndexRoute
+  '/api/public/steam/callback': typeof ApiPublicSteamCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -114,7 +130,9 @@ export interface FileRoutesById {
   '/presets': typeof PresetsRoute
   '/settings': typeof SettingsRoute
   '/games/$gameId': typeof GamesGameIdRoute
+  '/steam/complete': typeof SteamCompleteRoute
   '/games/': typeof GamesIndexRoute
+  '/api/public/steam/callback': typeof ApiPublicSteamCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -129,7 +147,9 @@ export interface FileRouteTypes {
     | '/presets'
     | '/settings'
     | '/games/$gameId'
+    | '/steam/complete'
     | '/games/'
+    | '/api/public/steam/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -141,7 +161,9 @@ export interface FileRouteTypes {
     | '/presets'
     | '/settings'
     | '/games/$gameId'
+    | '/steam/complete'
     | '/games'
+    | '/api/public/steam/callback'
   id:
     | '__root__'
     | '/'
@@ -154,7 +176,9 @@ export interface FileRouteTypes {
     | '/presets'
     | '/settings'
     | '/games/$gameId'
+    | '/steam/complete'
     | '/games/'
+    | '/api/public/steam/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -167,6 +191,8 @@ export interface RootRouteChildren {
   PluginsRoute: typeof PluginsRoute
   PresetsRoute: typeof PresetsRoute
   SettingsRoute: typeof SettingsRoute
+  SteamCompleteRoute: typeof SteamCompleteRoute
+  ApiPublicSteamCallbackRoute: typeof ApiPublicSteamCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -248,6 +274,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GamesGameIdRouteImport
       parentRoute: typeof GamesRoute
     }
+    '/steam/complete': {
+      id: '/steam/complete'
+      path: '/steam/complete'
+      fullPath: '/steam/complete'
+      preLoaderRoute: typeof SteamCompleteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/steam/callback': {
+      id: '/api/public/steam/callback'
+      path: '/api/public/steam/callback'
+      fullPath: '/api/public/steam/callback'
+      preLoaderRoute: typeof ApiPublicSteamCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -273,6 +313,8 @@ const rootRouteChildren: RootRouteChildren = {
   PluginsRoute: PluginsRoute,
   PresetsRoute: PresetsRoute,
   SettingsRoute: SettingsRoute,
+  SteamCompleteRoute: SteamCompleteRoute,
+  ApiPublicSteamCallbackRoute: ApiPublicSteamCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
