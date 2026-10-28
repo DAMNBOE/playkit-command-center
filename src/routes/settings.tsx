@@ -54,9 +54,9 @@ function SettingsPage() {
         <div className="divide-y">
           {section === "Account & Sync" && (account ? <>
             <Item label="Signed in" desc={account.email}><Button size="sm" variant="secondary" onClick={() => supabase.auth.signOut()}>Sign out</Button></Item>
-            <Item label="Sync status" desc="Library, configurations, presets and settings are saved to your account."><span className={cn("text-xs", syncStatus === "error" ? "text-destructive" : "text-muted-foreground")}>{{ off: "Off", syncing: "Saving…", synced: "Up to date", error: "Sync failed" }[syncStatus]}</span></Item>
+            <Item label="Sync status" desc="Web workspace data is saved to your account. Windows paths and installations stay on their own PC."><span className={cn("text-xs", syncStatus === "error" ? "text-destructive" : "text-muted-foreground")}>{{ off: "Off", syncing: "Saving…", synced: "Up to date", error: "Sync failed" }[syncStatus]}</span></Item>
           </> : (
-            <Item label="Not signed in" desc="Sign in to keep your data safe and use it on other devices. Without an account, data stays in this browser only."><Button size="sm" asChild><Link to="/auth">Sign in</Link></Button></Item>
+            <Item label="Not signed in" desc="Sign in to keep your data safe and use it on other devices. Windows workspace data stays on this PC; web workspace data stays in this browser."><Button size="sm" asChild><Link to="/auth">Sign in</Link></Button></Item>
           ))}
           {section === "General" && <>
             <Item label="Startup page" desc="Where AfScripts opens when launched.">
@@ -65,10 +65,10 @@ function SettingsPage() {
                 <SelectContent><SelectItem value="dashboard">Dashboard</SelectItem><SelectItem value="games">My Games</SelectItem><SelectItem value="last">Last opened page</SelectItem></SelectContent>
               </Select>
             </Item>
-            <Item label="Launch on Windows startup" desc="Requires the desktop app."><Switch checked={settings.launchOnBoot} onCheckedChange={(v) => set("launchOnBoot", v)} /></Item>
-            <Item label="Minimize to system tray" desc="Keep AfScripts running in the background."><Switch checked={settings.minimizeToTray} onCheckedChange={(v) => set("minimizeToTray", v)} /></Item>
+            <Item label="Launch on Windows startup" desc="Not available in this version."><Switch disabled checked={false} onCheckedChange={(v) => set("launchOnBoot", v)} /></Item>
+            <Item label="Minimize to system tray" desc="System tray integration is not available in this version."><Switch disabled checked={false} onCheckedChange={(v) => set("minimizeToTray", v)} /></Item>
             <Item label="Notifications" desc="Show toast messages for completed actions."><Switch checked={settings.notifications} onCheckedChange={(v) => set("notifications", v)} /></Item>
-            <Item label="Sound effects" desc="Play subtle sounds for actions."><Switch checked={settings.soundEffects} onCheckedChange={(v) => set("soundEffects", v)} /></Item>
+            <Item label="Sound effects" desc="Not available in this version."><Switch disabled checked={false} onCheckedChange={(v) => set("soundEffects", v)} /></Item>
           </>}
           {section === "Appearance" && <>
             <Item label="Dark theme" desc="AfScripts is designed for dark mode; a light theme is planned."><Switch checked={settings.darkTheme} onCheckedChange={() => toast("Light theme is coming in a future update.")} /></Item>
@@ -85,11 +85,11 @@ function SettingsPage() {
           </>}
           {section === "Game Library" && <>
             <Item label="Steam library folder" desc="Primary location scanned for games."><Input value={settings.libraryPath} onChange={(e) => set("libraryPath", e.target.value)} className="h-8 w-80 font-mono text-xs" /></Item>
-            <Item label="Auto-detect installed games" desc="Scan for installations on launch (simulated in preview)."><Switch checked={settings.autoDetect} onCheckedChange={(v) => set("autoDetect", v)} /></Item>
+            <Item label="Auto-detect installed games" desc="Scan installed Steam games when the Windows app opens."><Switch disabled={!getEnvironment().canDetectGames} checked={settings.autoDetect} onCheckedChange={(v) => set("autoDetect", v)} /></Item>
           </>}
           {section === "Configurations" && <>
-            <Item label="Automatic backups" desc="Back up a file before each save."><Switch checked={settings.autoBackup} onCheckedChange={(v) => set("autoBackup", v)} /></Item>
-            <Item label={`Backups kept per file: ${settings.backupLimit}`} desc="Oldest backups are removed first.">
+            <Item label="Automatic backups" desc="A safety backup is always required before replacing a disk file."><Switch disabled checked={true} onCheckedChange={(v) => set("autoBackup", v)} /></Item>
+            <Item label={`Backups kept per file: ${settings.backupLimit}`} desc="Workspace snapshot limit. Native safety backups are retained on disk.">
               <Slider className="w-48" min={1} max={30} step={1} value={[settings.backupLimit]} onValueChange={([v]) => set("backupLimit", v ?? 10)} />
             </Item>
           </>}
@@ -100,7 +100,7 @@ function SettingsPage() {
             </Item>
           </>}
           {section === "Plugins" && <>
-            <Item label="Auto-update plugins" desc="Install plugin updates automatically."><Switch checked={settings.autoUpdatePlugins} onCheckedChange={(v) => set("autoUpdatePlugins", v)} /></Item>
+            <Item label="Auto-update plugins" desc="Plugin installation and updates are not available in this version."><Switch disabled checked={false} onCheckedChange={(v) => set("autoUpdatePlugins", v)} /></Item>
           </>}
           {section === "About AfScripts" && (
             <div className="space-y-4 p-5">
@@ -116,7 +116,7 @@ function SettingsPage() {
               <AlertDialog>
                 <AlertDialogTrigger asChild><Button variant="secondary" size="sm">Reset all data</Button></AlertDialogTrigger>
                 <AlertDialogContent>
-                  <AlertDialogHeader><AlertDialogTitle>Reset AfScripts?</AlertDialogTitle><AlertDialogDescription>Restores the sample library, configurations and default settings.</AlertDialogDescription></AlertDialogHeader>
+                  <AlertDialogHeader><AlertDialogTitle>Reset AfScripts?</AlertDialogTitle><AlertDialogDescription>Resets the workspace and settings on this device. Files on disk are not deleted.</AlertDialogDescription></AlertDialogHeader>
                   <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => { reset(); toast.success("AfScripts has been reset"); }}>Reset</AlertDialogAction></AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>

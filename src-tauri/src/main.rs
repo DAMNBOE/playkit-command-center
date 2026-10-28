@@ -1,10 +1,11 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+mod files;
 mod commands;
 
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
-            commands::lookup_steam_app,
+            commands::lookup_steam_app, commands::launch_game, commands::select_config_file, commands::list_backups,
             commands::scan_library, commands::detect_install_path, commands::list_game_files,
             commands::read_config_file, commands::write_config_file,
             commands::create_backup, commands::restore_backup, commands::apply_preset,

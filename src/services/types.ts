@@ -41,6 +41,7 @@ export interface SteamSearchResult { appId: number; name: string; image: string 
 
 export interface GameLibraryService {
   /** Read Steam's public catalog through the native HTTP client. Desktop only. */
+  launch(appId: number): Promise<void>;
   lookupSteamApp(appId: number): Promise<SteamSearchResult[]>;
   /** Scan Steam libraries for installed games. Desktop only. */
   scanLibrary(libraryPath: string): Promise<DetectedGame[]>;
@@ -50,11 +51,13 @@ export interface GameLibraryService {
 }
 
 export interface ConfigFileService {
+  select(): Promise<string | null>;
   read(path: string): Promise<string | null>;
   write(path: string, content: string): Promise<void>;
 }
 
 export interface BackupService {
+  list(path: string): Promise<{ backupPath: string; createdAt: string; content: string }[]>;
   create(path: string, content: string): Promise<{ backupPath: string }>;
   restore(backupPath: string): Promise<string | null>;
 }
@@ -75,7 +78,7 @@ export interface DownloadProgress {
 export interface DownloadService {
   /** Subscribe to real progress events (desktop). Returns an unsubscribe fn. */
   onProgress(cb: (p: DownloadProgress) => void): () => void;
-  start(id: string, url: string): Promise<void>;
+  start(id: string, url: string, downloadPath?: string): Promise<void>;
   pause(id: string): Promise<void>;
   cancel(id: string): Promise<void>;
 }

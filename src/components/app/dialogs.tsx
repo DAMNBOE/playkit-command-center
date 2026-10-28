@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { uid, useStore, useGameVisibility } from "@/lib/store";
 import { GameIdentitySearch } from "./GameIdentitySearch";
+import { configFormat, isSupportedConfig } from "@/lib/preset-files";
+import { loadNativeConfig } from "@/lib/config-actions";
 import type { ConfigFile, Preset } from "@/lib/types";
 import { getEnvironment, getServices } from "@/services";
 import { Loader2, Upload } from "lucide-react";
@@ -22,12 +24,12 @@ export function AddGameDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   const { update, games, log, notify } = useStore();
   const [name, setName] = useState("");
   const [appId, setAppId] = useState("");
-  const [installed, setInstalled] = useState(true);
+  const [installed, setInstalled] = useState(false);
   const [path, setPath] = useState("");
   const [detecting, setDetecting] = useState(false);
   const [errors, setErrors] = useState<Errs>({});
 
-  useEffect(() => { if (open) { setName(""); setAppId(""); setPath(""); setErrors({}); setInstalled(true); } }, [open]);
+  useEffect(() => { if (open) { setName(""); setAppId(""); setPath(""); setErrors({}); setInstalled(false); } }, [open]);
 
   const detect = async () => {
     if (!name.trim()) { setErrors({ name: "Enter a game name first" }); return; }
@@ -39,7 +41,7 @@ export function AddGameDialog({ open, onOpenChange }: { open: boolean; onOpenCha
     setDetecting(false);
   };
 
-  const submit = () => {
+  const submit = async () => {
     const e: Errs = {};
     if (name.trim().length < 2) e.name = "Name must be at least 2 characters";
     const id = Number(appId);
@@ -48,10 +50,20 @@ export function AddGameDialog({ open, onOpenChange }: { open: boolean; onOpenCha
     if (installed && !path.trim()) e.path = "Installation path is required for installed games";
     setErrors(e);
     if (Object.keys(e).length) return;
+    let verifiedPath = "";
+    let sizeGb = 0;
+    if (installed) {
+      try {
+        const found = await getServices().library.scanLibrary("");
+        const match = found.find(g => g.appId === id);
+        if (!match) { setErrors({ path:"This App ID is not installed through Steam" }); return; }
+        verifiedPath = match.installPath; sizeGb = match.sizeBytes / 1073741824;
+      } catch(e) { setErrors({ path:String(e) }); return; }
+    }
     const gid = uid();
     update("games", (gs) => [{
-      id: gid, name: name.trim(), appId: id, installed, configStatus: "none", lastModified: new Date().toISOString(),
-      installPath: installed ? path.trim() : "—", sizeGb: 0, genre: "Uncategorized", hue: Math.floor(Math.random() * 360),
+      id: gid, name: name.trim(), appId: id, installed, verified: installed, configStatus: "none", lastModified: new Date().toISOString(),
+      installPath: verifiedPath, sizeGb, genre: "Uncategorized", hue: Math.floor(Math.random() * 360),
       favorite: false, developer: "Unknown",
     }, ...gs]);
     log("game", `Added ${name.trim()} to library`, gid);
@@ -66,7 +78,7 @@ export function AddGameDialog({ open, onOpenChange }: { open: boolean; onOpenCha
         <div className="space-y-3">
           <div className="space-y-1.5"><Label>Game name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Portal 2" /><FieldError msg={errors.name} /></div>
           <div className="space-y-1.5"><Label>Steam App ID</Label><Input value={appId} onChange={(e) => setAppId(e.target.value)} placeholder="620" className="font-mono" /><FieldError msg={errors.appId} /></div>
-          <div className="flex items-center justify-between rounded-md border px-3 py-2"><Label>Installed on this PC</Label><Switch checked={installed} onCheckedChange={setInstalled} /></div>
+          <div className="flex items-center justify-between rounded-md border px-3 py-2"><Label>Installed on this PC</Label><Switch disabled={!getEnvironment().canDetectGames} checked={installed} onCheckedChange={setInstalled} /></div>
           {installed && (
             <div className="space-y-1.5">
               <Label>Installation path</Label>
@@ -98,7 +110,8 @@ export function ImportConfigDialog({ open, onOpenChange, defaultGameId, onImport
   const { update, log, notify } = useStore();
   const { games } = useGameVisibility();
   const [gameId, setGameId] = useState(defaultGameId ?? "");
-  const [file, setFile] = useState<{ name: string; content: string } | null>(null);
+  const [file, setFile] = useState<{ name: string; content: string; path?: string } | null>(null);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const ref = useRef<HTMLInputElement>(null);
 
@@ -106,20 +119,32 @@ export function ImportConfigDialog({ open, onOpenChange, defaultGameId, onImport
 
   const onFile = async (f?: File) => {
     if (!f) return;
+    if (!isSupportedConfig(f.name)) { setError("Unsupported configuration file type"); return; }
     if (f.size > 512 * 1024) { setError("File is larger than 512 KB"); return; }
     setFile({ name: f.name, content: await f.text() }); setError("");
   };
 
-  const submit = () => {
-    if (!games.some((g) => g.id === gameId)) return setError("Select a matching game");
+  const selectNative = async () => {
+    setBusy(true); setError("");
+    try {
+      const path = await getServices().configs.select();
+      if (path) { const content=await getServices().configs.read(path); if (content === null) throw new Error("File no longer exists"); setFile({ name:path.split(/[\\/]/).pop() ?? path,content,path }); }
+    } catch(e) { setError(String(e)); }
+    finally { setBusy(false); }
+  };
+  const submit = async () => {
+    if (!games.some(g => g.id === gameId)) return setError("Select a matching game");
     if (!file) return setError("Choose a configuration file");
-    const id = uid();
-    update("configs", (cs) => [{ id, gameId, name: file.name, path: `imported\\${file.name}`, format: extFormat(file.name), content: file.content, modifiedAt: new Date().toISOString(), backups: [] }, ...cs]);
-    update("games", (gs) => gs.map((g) => g.id === gameId ? { ...g, configStatus: g.configStatus === "none" ? "partial" : g.configStatus, lastModified: new Date().toISOString() } : g));
-    log("import", `Imported ${file.name}`, gameId);
-    notify("Configuration imported", file.name);
-    onOpenChange(false);
-    onImported?.(id);
+    setBusy(true);
+    try {
+      const c: ConfigFile = file.path ? await loadNativeConfig(file.path,gameId) : { id:uid(),gameId,name:file.name,path:`workspace/${file.name}`,native:false,format:configFormat(file.name),content:file.content,modifiedAt:new Date().toISOString(),backups:[] };
+      update("configs",cs => [c,...cs.filter(x => x.path !== c.path || x.gameId !== gameId)]);
+      update("games",gs => gs.map(g => g.id === gameId ? { ...g,configStatus:"partial",lastModified:new Date().toISOString() } : g));
+      log("import",`${c.native ? "Opened disk file" : "Imported workspace copy"} ${c.name}`,gameId);
+      notify(c.native ? "Configuration opened" : "Workspace copy imported",c.name);
+      onOpenChange(false); onImported?.(c.id);
+    } catch(e) { setError(String(e)); }
+    finally { setBusy(false); }
   };
 
   return (
@@ -135,6 +160,7 @@ export function ImportConfigDialog({ open, onOpenChange, defaultGameId, onImport
               <SelectContent>{games.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
+          {getEnvironment().canAccessFilesystem && <Button variant="secondary" disabled={busy} onClick={selectNative}>Select file on this PC</Button>}
           <button onClick={() => ref.current?.click()} className="flex w-full flex-col items-center gap-1.5 rounded-lg border border-dashed px-4 py-7 text-xs text-muted-foreground hover:border-primary/50 hover:bg-primary/5">
             <Upload className="size-5" />
             {file ? <span className="font-mono text-foreground">{file.name}</span> : "Click to choose a file"}
@@ -142,7 +168,7 @@ export function ImportConfigDialog({ open, onOpenChange, defaultGameId, onImport
           <input ref={ref} type="file" hidden accept=".ini,.cfg,.json,.xml,.lua,.txt,.lsx,.settings" onChange={(e) => onFile(e.target.files?.[0])} />
           <FieldError msg={error} />
         </div>
-        <DialogFooter><Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button><Button onClick={submit}>Import</Button></DialogFooter>
+        <DialogFooter><Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button><Button disabled={busy} onClick={submit}>{busy ? "Opening…" : "Import"}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -150,7 +176,8 @@ export function ImportConfigDialog({ open, onOpenChange, defaultGameId, onImport
 
 export function PresetDialog({ open, onOpenChange, preset, defaultGameId }: { open: boolean; onOpenChange: (o: boolean) => void; preset?: Preset | null; defaultGameId?: string | undefined }) {
   const { presets, update, log, notify } = useStore();
-  const { games } = useGameVisibility();
+  const { games, configs } = useGameVisibility();
+  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [name, setName] = useState("");
   const [gameId, setGameId] = useState("");
   const [description, setDescription] = useState("");
@@ -158,7 +185,7 @@ export function PresetDialog({ open, onOpenChange, preset, defaultGameId }: { op
 
   useEffect(() => {
     if (open) {
-      setName(preset?.name ?? ""); setGameId(preset?.gameId ?? defaultGameId ?? ""); setDescription(preset?.description ?? ""); setErrors({});
+      setName(preset?.name ?? ""); setGameId(preset?.gameId ?? defaultGameId ?? ""); setDescription(preset?.description ?? ""); setErrors({}); setSelectedFiles([]);
     }
   }, [open, preset, defaultGameId]);
 
@@ -169,15 +196,17 @@ export function PresetDialog({ open, onOpenChange, preset, defaultGameId }: { op
     else if (n.length > 48) e.name = "Name must be 48 characters or fewer";
     else if (presets.some((p) => p.name.toLowerCase() === n.toLowerCase() && p.id !== preset?.id)) e.name = "A preset with this name already exists";
     if (!games.some((g) => g.id === gameId)) e.gameId = "Select a matching game";
+    const snapshots = selectedFiles.length ? configs.filter(c => c.gameId === gameId && selectedFiles.includes(c.id)).map(c => ({ name:c.name,content:c.content })) : preset?.files ?? [];
+    if (!snapshots.length) e.description = "Select at least one configuration file";
     if (description.length > 200) e.description = "Description must be 200 characters or fewer";
     setErrors(e);
     if (Object.keys(e).length) return;
     const now = new Date().toISOString();
     if (preset) {
-      update("presets", (ps) => ps.map((p) => p.id === preset.id ? { ...p, name: n, gameId, description: description.trim(), updatedAt: now } : p));
+      update("presets", (ps) => ps.map((p) => p.id === preset.id ? { ...p, name: n, gameId, description: description.trim(), files:snapshots, updatedAt: now } : p));
       log("preset", `Updated preset ${n}`, gameId); notify("Preset updated", n);
     } else {
-      update("presets", (ps) => [{ id: uid(), name: n, gameId, description: description.trim(), createdAt: now, updatedAt: now }, ...ps]);
+      update("presets", (ps) => [{ id: uid(), name: n, gameId, description: description.trim(), files:snapshots, createdAt: now, updatedAt: now }, ...ps]);
       log("preset", `Created preset ${n}`, gameId); notify("Preset created", n);
     }
     onOpenChange(false);
@@ -197,6 +226,11 @@ export function PresetDialog({ open, onOpenChange, preset, defaultGameId }: { op
               <SelectContent>{games.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
             </Select>
             <FieldError msg={errors.gameId} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Configuration files</Label>
+            {configs.filter(c => c.gameId === gameId).map(c => <label key={c.id} className="flex items-center gap-2 text-xs"><input type="checkbox" checked={selectedFiles.includes(c.id)} onChange={e => setSelectedFiles(ids => e.target.checked ? [...ids,c.id] : ids.filter(id => id !== c.id))} />{c.name}</label>)}
+            {!!preset?.files?.length && <p className="text-xs text-muted-foreground">{preset.files.length} saved files retained unless replaced.</p>}
           </div>
           <div className="space-y-1.5">
             <Label>Description</Label>

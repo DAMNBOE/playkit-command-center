@@ -1,8 +1,10 @@
 # Tasks
+- [ ] Integrate official Steam metadata, name/App ID search, linked profiles and owned games without replacing native installation detection (owned-games API requires a secure Steam Web API key).
 - [x] Audit desktop functionality and provide incomplete-feature list in the staged completion plan.
-- [ ] Complete Steam detection, safe configuration writes, backup/restore, and Steam launching.
-- [ ] Connect persistent presets, authorized downloads, and real dashboard data.
-- [ ] Verify service/Rust tests and updated Windows installer (PC verification requires Windows).
+- [x] Implement measured Steam detection, authorized configuration writes, native backup/restore, and Steam launch; filesystem tests and emulated UI passed.
+- [x] Connect file-snapshot presets, authorized native downloads, and verified-install dashboard data; remove simulated progress and disable unsupported settings.
+- [x] Verify frontend regression tests and Rust core/command-body tests; Windows workflow now tests before packaging.
+- [ ] Verify full Tauri/Windows build and real-PC flows (blocked on Windows runner and PC; local full Cargo lacks Linux GUI libraries).
 - [x] Fix Windows App ID lookup without web-server calls; verify digit entry, results, and failure recovery with the Windows bridge emulated.
 - [ ] Rebuild and verify the updated Windows installer on a PC (requires GitHub Windows workflow and reinstall).
 - [x] Add AfScripts manifest, app icons, and guarded generated service worker; verify preview safety and tests (published offline behavior requires deployment).

@@ -5,6 +5,7 @@ export interface Game {
   name: string;
   appId: number;
   installed: boolean;
+  verified?: boolean;
   configStatus: ConfigStatus;
   lastModified: string; // ISO
   installPath: string;
@@ -20,6 +21,7 @@ export interface ConfigBackup {
   createdAt: string;
   content: string;
   label: string;
+  backupPath?: string;
 }
 
 export interface ConfigFile {
@@ -27,6 +29,7 @@ export interface ConfigFile {
   gameId: string;
   name: string;
   path: string;
+  native?: boolean;
   format: "ini" | "json" | "cfg" | "lua" | "xml";
   content: string;
   modifiedAt: string;
@@ -40,9 +43,10 @@ export interface Preset {
   description: string;
   createdAt: string;
   updatedAt: string;
+  files?: { name: string; content: string }[];
 }
 
-export type DownloadStatus = "queued" | "active" | "paused" | "completed" | "failed";
+export type DownloadStatus = "queued" | "active" | "paused" | "completed" | "failed" | "cancelled";
 
 export interface Download {
   id: string;
@@ -56,6 +60,7 @@ export interface Download {
   /** Real source URL (desktop downloads). Absent for simulated sample items. */
   url?: string | undefined;
   savedTo?: string | undefined;
+  receivedBytes?: number;
   error?: string | undefined;
 }
 

@@ -13,7 +13,9 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 dirs = "5"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+tokio = { version = "1", features = ["macros", "time", "net"] }
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls"] }
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.52"
+rfd = "0.15"

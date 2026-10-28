@@ -30,6 +30,12 @@ jobs:
       - name: Generate app icons from the AfScripts logo
         run: bunx @tauri-apps/cli@^2 icon src-tauri/app-icon.png
 
+      - name: Verify frontend tests
+        run: bun run test
+
+      - name: Verify native commands and filesystem tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
       - name: Build and publish installers
         uses: tauri-apps/tauri-action@v0
         env:

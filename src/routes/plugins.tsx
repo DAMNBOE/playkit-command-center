@@ -65,14 +65,14 @@ function Plugins() {
                   <p className="truncate font-semibold">{p.name}</p>
                   <p className="text-[11px] text-muted-foreground">v{p.version} · {p.author}</p>
                 </div>
-                <Switch checked={p.enabled} onCheckedChange={() => toggle(p)} aria-label={`Toggle ${p.name}`} />
+                <Switch disabled checked={false} onCheckedChange={() => toggle(p)} aria-label={`Toggle ${p.name}`} />
               </div>
               <p className="mt-3 line-clamp-2 flex-1 text-xs text-muted-foreground">{p.description}</p>
               <div className="mt-3 flex flex-wrap items-center gap-1 border-t pt-3">
                 <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{p.category}</span>
                 <span className={cn("text-[11px]", p.enabled ? "text-success" : "text-muted-foreground")}>· {p.enabled ? "Enabled" : "Disabled"}</span>
                 <Button size="sm" variant="ghost" className="ml-auto h-7 text-xs" onClick={() => setDetails(p)}><Info className="size-3.5" /> Details</Button>
-                <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:text-destructive" onClick={() => setRemoving(p)}><Trash2 className="size-3.5" /> Uninstall</Button>
+                <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:text-destructive" disabled onClick={() => setRemoving(p)}><Trash2 className="size-3.5" /> Uninstall</Button>
               </div>
             </div>
           ))}
@@ -89,7 +89,7 @@ function Plugins() {
             <dt className="text-muted-foreground">Installed</dt><dd>{details && fmtDate(details.installedAt)}</dd>
             <dt className="text-muted-foreground">Status</dt><dd>{details?.enabled ? "Enabled" : "Disabled"}</dd>
           </dl>
-          <DialogFooter>{details && <Button variant={details.enabled ? "secondary" : "default"} onClick={() => { toggle(details); setDetails(null); }}>{details.enabled ? "Disable" : "Enable"}</Button>}</DialogFooter>
+          <DialogFooter>{details && <Button disabled variant={details.enabled ? "secondary" : "default"} onClick={() => { toggle(details); setDetails(null); }}>{details.enabled ? "Disable" : "Enable"}</Button>}</DialogFooter>
         </DialogContent>
       </Dialog>
 

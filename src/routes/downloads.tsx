@@ -12,7 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { getServices, isDesktopRuntime } from "@/services";
 import type { Download, DownloadStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { tickDownloads } from "@/lib/downloads";
+
 
 export const Route = createFileRoute("/downloads")({
   head: () => ({
@@ -33,6 +33,7 @@ const statusMeta: Record<DownloadStatus, { label: string; cls: string; icon: typ
   active: { label: "Downloading", cls: "text-info", icon: DlIcon },
   paused: { label: "Paused", cls: "text-warning", icon: Pause },
   completed: { label: "Completed", cls: "text-success", icon: CheckCircle2 },
+  cancelled: { label: "Cancelled", cls: "text-muted-foreground", icon: X },
   failed: { label: "Failed", cls: "text-destructive", icon: AlertTriangle },
 };
 
@@ -45,45 +46,16 @@ function Downloads() {
   const desktop = isDesktopRuntime();
   const [url, setUrl] = useState("");
 
-  // Desktop: real progress events from the native downloader.
-  useEffect(() => {
-    if (!desktop) return;
-    return getServices().downloads.onProgress((p) => {
-      update("downloads", (ds) => ds.map((d) => {
-        if (d.id !== p.id) return d;
-        const sizeMb = p.total ? p.total / 1048576 : d.sizeMb;
-        if (p.status === "completed") { setTimeout(() => { notify("Download complete", p.path); log("download", `Downloaded ${d.name} to ${p.path}`, d.gameId); }); return { ...d, status: "completed", progress: 100, speedMbps: 0, sizeMb, savedTo: p.path }; }
-        if (p.status === "failed") { setTimeout(() => fail("Download failed", p.error ?? d.name)); return { ...d, status: "failed", speedMbps: 0, error: p.error ?? undefined }; }
-        if (p.status === "cancelled") return d;
-        const prevMb = (d.progress / 100) * d.sizeMb;
-        const nowMb = p.received / 1048576;
-        return { ...d, status: d.status === "paused" ? "paused" : "active", sizeMb, progress: p.total ? (p.received / p.total) * 100 : 0, speedMbps: Math.max(0, (nowMb - prevMb) / 0.3) };
-      }));
-    });
-  }, [desktop, update, notify, log, fail]);
-
   const addDownload = async () => {
     const u = url.trim();
     if (!/^https?:\/\//.test(u)) { fail("Enter a valid http(s) link"); return; }
     const id = uid();
-    const name = decodeURIComponent(u.split("?")[0]?.split("/").pop() || "download");
-    try { await getServices().downloads.start(id, u); }
-    catch (e) { fail("Could not start download", (e as Error).message); return; }
-    update("downloads", (ds) => [{ id, name, url: u, sizeMb: 0, progress: 0, speedMbps: 0, status: "active", addedAt: new Date().toISOString() }, ...ds]);
+    let name: string;
+    try { name = new URL(u).pathname.split("/").pop() || "download"; } catch { fail("Enter a valid file URL"); return; }
+    if (!desktop) { fail("Downloads require the Windows app"); return; }
+    update("downloads", ds => [{ id,name,url:u,sizeMb:0,progress:0,speedMbps:0,status:"queued",addedAt:new Date().toISOString() },...ds]);
     setUrl("");
   };
-
-  useEffect(() => {
-    if (desktop) return;
-    const t = setInterval(() => {
-      update("downloads", (ds) => {
-        const next = tickDownloads(ds, settings.maxConcurrent);
-        next.forEach((d, i) => { if (d.status === "completed" && ds[i]?.status === "active") setTimeout(() => { log("download", `Completed download: ${d.name}`, d.gameId); }); });
-        return next;
-      });
-    }, 1000);
-    return () => clearInterval(t);
-  }, [desktop, update, settings.maxConcurrent, notify, log]);
 
   const set = (id: string, patch: Partial<Download>) => update("downloads", (ds) => ds.map((d) => (d.id === id ? { ...d, ...patch } : d)));
   const pause = async (d: Download) => {
@@ -92,23 +64,18 @@ function Downloads() {
   };
   const resume = async (d: Download) => {
     if (desktop && d.url) {
-      try { await getServices().downloads.start(d.id, d.url); set(d.id, { status: "active" }); }
+      try { await getServices().downloads.start(d.id, d.url,settings.downloadPath); set(d.id, { status: "active" }); }
       catch (e) { fail("Could not resume download", (e as Error).message); }
       return;
     }
     set(d.id, { status: "queued" });
   };
   const cancel = async (d: Download) => {
+    if (["completed","failed","cancelled","queued"].includes(d.status)) { update("downloads",ds => ds.filter(x => x.id !== d.id)); return; }
     try { await getServices().downloads.cancel(d.id); }
-    catch (e) { fail("Could not cancel download", (e as Error).message); return; }
-    update("downloads", (ds) => ds.filter((x) => x.id !== d.id)); notify("Download cancelled", d.name);
+    catch(e) { fail("Could not cancel download",String(e)); }
   };
-  const retry = async (d: Download) => {
-    if (desktop && d.url) {
-      try { await getServices().downloads.start(d.id, d.url); set(d.id, { status: "active", progress: 0, error: undefined }); }
-      catch (e) { fail("Could not retry download", (e as Error).message); }
-      return;
-    } set(d.id, { status: "queued", progress: 0 }); log("download", `Retrying download: ${d.name}`, d.gameId); };
+  const retry = (d: Download) => set(d.id,{ status:"queued",progress:0,receivedBytes:0,error:undefined });
   const clearCompleted = () => update("downloads", (ds) => ds.filter((d) => d.status !== "completed"));
 
   const groups = {
@@ -133,17 +100,19 @@ function Downloads() {
           <Progress value={d.progress} className={cn("h-1.5", d.status === "failed" && "[&>div]:bg-destructive", d.status === "completed" && "[&>div]:bg-success")} />
           <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-muted-foreground tabular-nums">
             <span className={m.cls}>{m.label}</span>
-            <span>{fmtMb((d.progress / 100) * d.sizeMb)} / {fmtMb(d.sizeMb)}</span>
+            <span>{fmtMb((d.receivedBytes ?? 0) / 1048576)} / {fmtMb(d.sizeMb)}</span>
             {d.status === "active" && <span>{d.speedMbps.toFixed(1)} MB/s</span>}
-            {d.status === "active" && <span>~{Math.ceil(((100 - d.progress) / 100) * d.sizeMb / Math.max(0.1, d.speedMbps))}s left</span>}
+            {d.status === "active" && <span>{d.sizeMb ? `~${Math.ceil(((100 - d.progress) / 100) * d.sizeMb / Math.max(0.1,d.speedMbps))}s left` : "Size unknown"}</span>}
             <span className="ml-auto">Added {timeAgo(d.addedAt)}</span>
           </div>
+          {d.error && <p className="text-xs text-destructive">{d.error}</p>}
+          {d.savedTo && <p className="truncate font-mono text-xs text-muted-foreground">{d.savedTo}</p>}
         </div>
         <div className="flex shrink-0 flex-col gap-1 sm:flex-row">
           {d.status === "active" && <Act label="Pause" icon={Pause} onClick={() => pause(d)} />}
           {(d.status === "paused") && <Act label="Resume" icon={Play} onClick={() => resume(d)} />}
           {d.status === "failed" && <Act label="Retry" icon={RotateCw} onClick={() => retry(d)} />}
-          {d.status !== "completed" ? <Act label="Cancel" icon={X} onClick={() => cancel(d)} /> : <Act label="Remove" icon={Trash2} onClick={() => cancel(d)} />}
+          {!["completed","cancelled"].includes(d.status) ? <Act label="Cancel" icon={X} onClick={() => cancel(d)} /> : <Act label="Remove" icon={Trash2} onClick={() => cancel(d)} />}
         </div>
       </div>
     );
@@ -154,12 +123,13 @@ function Downloads() {
       {desktop ? (
         <form onSubmit={(e) => { e.preventDefault(); void addDownload(); }} className="flex flex-col gap-2 rounded-lg border bg-card p-3 sm:flex-row">
           <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Paste a direct file link (https://…) — saved to Downloads\\AfScripts" className="h-9 font-mono text-xs" />
+          <label className="flex items-center gap-2 text-xs text-muted-foreground"><input type="checkbox" required />I’m authorized to download this file</label>
           <Button type="submit" size="sm" className="h-9"><DlIcon className="size-4" /> Download</Button>
         </form>
       ) : (
         <div className="flex items-center gap-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-2.5 text-xs">
           <FlaskConical className="size-4 shrink-0 text-warning" />
-          <span><strong className="font-semibold">Simulated downloads.</strong> Real downloads to your PC work in the AfScripts Windows app. The items below are a preview.</span>
+          <span><strong className="font-semibold">Windows app required.</strong> No files are downloaded by this browser preview.</span>
         </div>
       )}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
