@@ -1,7 +1,7 @@
 # Tasks
 - [x] Clarify Apify link: user wants its results as supplemental Steam metadata, not an unapproved run restart.
-- [ ] Implement free Steam OpenID account linking, verified callbacks, stored Steam profiles with owner-only access, Connect/Disconnect Steam controls and real profile display; no owned games or achievements in this stage.
-- [ ] Verify Steam sign-in end-to-end (Steam interactive login requires the user's session); explain publishing/configuration requirements.
+- [x] Implement web-only free Steam OpenID account linking, verified callbacks, stored Steam profiles with owner-only access, Connect/Disconnect Steam controls and real profile display; no owned games or achievements in this stage. Migration applied, 44 tests passed; profile XML is best-effort.
+- [ ] Complete Steam sign-in and verify linked profile/disconnect end-to-end (blocked on the user's interactive Steam login); real login handoff, protected cookie and cancellation verified. Publish required for production callbacks; instructions in docs/STEAM.md.
 - [x] Defer Apify and credential-required catalog/owned-games work per the latest Steam authentication-only request.
 - [x] Audit desktop functionality and provide incomplete-feature list in the staged completion plan.
 - [x] Implement measured Steam detection, authorized configuration writes, native backup/restore, and Steam launch; filesystem tests and emulated UI passed.

@@ -6,17 +6,20 @@ import { getSteamAccount,disconnectSteamAccount,refreshSteamAccount } from '@/li
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { isDesktopRuntime } from '@/services';
+import { useStore } from '@/lib/store';
 type Account=Awaited<ReturnType<typeof getSteamAccount>>;
 export function SteamAccount(){
+ const {account:appAccount}=useStore();
  const get=useServerFn(getSteamAccount),disconnect=useServerFn(disconnectSteamAccount),refresh=useServerFn(refreshSteamAccount);
  const [account,setAccount]=useState<Account>(null),[signedIn,setSignedIn]=useState(false),[busy,setBusy]=useState(true),[error,setError]=useState('');
  const load=async()=>{
   setError('');setBusy(true);
+  if(isDesktopRuntime()){setBusy(false);setAccount(null);return;}
   try {const {data,error:authError}=await supabase.auth.getUser();if(authError || !data.user){setSignedIn(false);setAccount(null);return;}setSignedIn(true);setAccount(await get());}
   catch(e){setError(e instanceof Error ? e.message : 'Could not load Steam account');}
   finally{setBusy(false);}
  };
- useEffect(()=>{void load();const handler=()=>{void load();};window.addEventListener('focus',handler);const {data}=supabase.auth.onAuthStateChange(event=>{if(event==='SIGNED_IN' || event==='SIGNED_OUT') setTimeout(handler,0);});return()=>{window.removeEventListener('focus',handler);data.subscription.unsubscribe();};},[get]);
+ useEffect(()=>{void load();const handler=()=>{void load();};window.addEventListener('focus',handler);return()=>{window.removeEventListener('focus',handler);};},[get,appAccount?.id]);
  const connect=()=>{
   if(isDesktopRuntime()){setError('Connect Steam from the AfScripts website. Steam sign-in is not available inside this Windows installer.');return;}
   const popup=window.open(`${window.location.origin}/steam/connect`,'afscripts-steam-login','width=760,height=820');
