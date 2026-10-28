@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { getEnvironment } from "@/services";
 import { useState } from "react";
 import { ArrowUpRight, CheckCircle2, Cpu, Download, FileCog, FileDown, Gamepad2, HardDrive, Layers, Plus } from "lucide-react";
 import { useStore, useGameVisibility, timeAgo } from "@/lib/store";
@@ -28,13 +29,13 @@ function Dashboard() {
   const [importOpen, setImportOpen] = useState(false);
   const [presetOpen, setPresetOpen] = useState(false);
 
-  const installed = games.filter((g) => g.installed);
-  const recent = [...games].sort((a, b) => b.lastModified.localeCompare(a.lastModified)).slice(0, 5);
+  const installed = games.filter((g) => g.installed && g.verified);
+  const recent = [...games.filter(g => activity.some(a => a.gameId === g.id))].sort((a, b) => b.lastModified.localeCompare(a.lastModified)).slice(0, 5);
   const usedGb = installed.reduce((s, g) => s + g.sizeGb, 0);
   const configured = games.filter((g) => g.configStatus === "configured").length;
 
   const stats = [
-    { label: "Total Games", value: games.length, sub: `${games.filter((g) => g.favorite).length} favorites`, icon: Gamepad2, to: "/games" },
+    { label: "Total Games", value: games.filter(g => g.verified).length, sub: `${games.filter((g) => g.favorite).length} favorites`, icon: Gamepad2, to: "/games" },
     { label: "Installed Games", value: installed.length, sub: `${usedGb.toFixed(0)} GB on disk`, icon: HardDrive, to: "/games" },
     { label: "Configurations", value: configs.length, sub: `${configs.reduce((s, c) => s + c.backups.length, 0)} backups`, icon: FileCog, to: "/configurations" },
     { label: "Saved Presets", value: presets.length, sub: `across ${new Set(presets.map((p) => p.gameId)).size} games`, icon: Layers, to: "/presets" },
@@ -112,13 +113,13 @@ function Dashboard() {
 
         <Panel title="System Overview">
           <div className="space-y-3.5 p-4 text-xs">
-            <Meter label="Library storage" value={Math.min(100, (usedGb / 1000) * 100)} detail={`${usedGb.toFixed(0)} / 1000 GB`} />
+            <Meter label="Detected game storage" value={installed.length ? 100 : 0} detail={`${usedGb.toFixed(1)} GB`} />
             <Meter label="Configured games" value={(configured / Math.max(1, games.length)) * 100} detail={`${configured} / ${games.length}`} />
             <Meter label="Plugins enabled" value={(plugins.filter((p) => p.enabled).length / Math.max(1, plugins.length)) * 100} detail={`${plugins.filter((p) => p.enabled).length} / ${plugins.length}`} />
             <div className="space-y-1.5 border-t pt-3 text-muted-foreground">
-              <Row icon={Cpu} k="Platform" v="Windows 11 · x64 (simulated)" />
-              <Row icon={CheckCircle2} k="Steam library" v="Detected (simulated)" />
-              <Row icon={FileCog} k="Last backup" v={timeAgo(activity.find((a) => a.type === "backup")?.at ?? new Date().toISOString())} />
+              <Row icon={Cpu} k="Platform" v={getEnvironment().label} />
+              <Row icon={CheckCircle2} k="Steam library" v={installed.length ? "Installed games verified" : "No installations verified"} />
+              <Row icon={FileCog} k="Last backup" v={activity.find(a => a.type === "backup") ? timeAgo(activity.find(a => a.type === "backup")?.at ?? "") : "No backups"} />
             </div>
           </div>
         </Panel>

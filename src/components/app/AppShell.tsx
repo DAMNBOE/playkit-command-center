@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useRef, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   Activity as ActivityIcon, Bell, ChevronsLeft, ChevronsRight, Download, FileCog, Gamepad2,
@@ -46,6 +46,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { settings, hydrated } = useStore();
   const { downloads, activity } = useGameVisibility();
+  const navigate = useNavigate();
+  const startupHandled = useRef(false);
   const path = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
@@ -69,6 +71,18 @@ export function AppShell({ children }: { children: ReactNode }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  useEffect(() => {
+    if (!hydrated || startupHandled.current) return;
+    startupHandled.current = true;
+    const previous = localStorage.getItem("afscripts:last-page");
+    if (path === "/" && settings.startup === "games") void navigate({ to:"/games" });
+    else if (path === "/" && settings.startup === "last" && previous) {
+      const target = NAV.find(n => n.to === previous);
+      if (target) void navigate({ to:target.to });
+    }
+  }, [hydrated,settings.startup,path,navigate]);
+  useEffect(() => { if (hydrated && NAV.some(n => n.to === path)) localStorage.setItem("afscripts:last-page",path); },[hydrated,path]);
 
   useEffect(() => { setDrawerOpen(false); }, [path]);
 
@@ -256,7 +270,7 @@ function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
   const gameName = useMemo(() => Object.fromEntries(games.map((g) => [g.id, g.name])), [games]);
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange} shouldFilter={false}>
-      <CommandInput placeholder="Game name or Steam App ID" value={gameQuery} onValueChange={setGameQuery} />
+      <CommandInput placeholder="Steam App ID" value={gameQuery} onValueChange={setGameQuery} />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
         <CommandGroup heading="Games">
