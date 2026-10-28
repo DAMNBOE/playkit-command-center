@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { parseAppId } from "./game-visibility";
-
-export interface SteamSearchResult { appId: number; name: string; image: string }
+import type { SteamSearchResult } from "@/services/types";
+export type { SteamSearchResult } from "@/services/types";
 
 /** Searches Steam's public store catalog (no account needed). Server-side to avoid CORS. */
 export const searchSteamStore = createServerFn({ method: "GET" })

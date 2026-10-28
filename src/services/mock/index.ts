@@ -16,6 +16,7 @@ export const browserServices: AppServices = {
     canControlWindow: false,
   },
   library: {
+    async lookupSteamApp() { throw new DesktopOnlyError("Native Steam store lookup"); },
     async scanLibrary() { throw new DesktopOnlyError("Steam library scanning"); },
     async detectInstallPath() { throw new DesktopOnlyError("Install path detection"); },
     async listGameFiles() { throw new DesktopOnlyError("Browsing local game files"); },

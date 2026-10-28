@@ -44,6 +44,31 @@ fn check_config_path(path: &str) -> Result<PathBuf, String> {
 
 // ---------------- Steam library ----------------
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SteamSearchResult { app_id: u32, name: String, image: String }
+
+/// A static desktop bundle has no web RPC server. Fetch public metadata natively.
+#[tauri::command]
+pub async fn lookup_steam_app(app_id: u32) -> Result<Vec<SteamSearchResult>, String> {
+    if app_id == 0 { return Ok(vec![]); }
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .build().map_err(err)?;
+    let response = client.get("https://store.steampowered.com/api/appdetails")
+        .query(&[("appids", app_id.to_string()), ("filters", "basic".to_string())])
+        .send().await.map_err(|_| "Could not reach Steam. Check your connection and try again.".to_string())?
+        .error_for_status().map_err(|_| "Steam is temporarily unavailable. Try again.".to_string())?;
+    let text = response.text().await.map_err(err)?;
+    let catalog: serde_json::Value = serde_json::from_str(&text).map_err(|_| "Steam returned an invalid response.".to_string())?;
+    let entry = &catalog[app_id.to_string()];
+    if entry["success"].as_bool() != Some(true) { return Ok(vec![]); }
+    let data = &entry["data"];
+    let name = data["name"].as_str().ok_or("Steam returned an invalid game name.")?;
+    let image = data["header_image"].as_str().unwrap_or("");
+    Ok(vec![SteamSearchResult { app_id, name: name.to_string(), image: image.to_string() }])
+}
+
 fn steam_root() -> Option<PathBuf> {
     #[cfg(windows)]
     {

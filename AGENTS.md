@@ -10,6 +10,7 @@
 <!-- LOVABLE:END -->
 
 ## Architecture rules
+- Steam catalog lookup uses a native library service command in Tauri and a server function on the web; never call web RPCs from the static desktop search because the installer contains no Start server.
 - Web installability uses a static manifest; offline caching uses vite-plugin-pwa generateSW and only src/lib/pwa.ts registers /sw.js, refusing preview/dev/iframe/Tauri contexts and supporting ?sw=off — prevents stale editor and desktop assets. Never cache API/auth/OAuth responses or precache SSR HTML.
 - Game visibility is derived by `useGameVisibility()` from a transient shared identity search; stored collections and mutation callbacks stay complete so filtering cannot delete hidden data. Never persist the search or use raw collections for game-related presentation.
 - All app state lives in `src/lib/store.tsx` (React context, cached in localStorage); signed-in users' whole state is mirrored as one JSON row in `public.user_state` — keeps one source of truth with simple sync.
