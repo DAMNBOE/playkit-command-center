@@ -13,6 +13,15 @@ describe("browser services", () => {
   it("refuses local file listing", async () => {
     await expect(getServices().library.listGameFiles("C:\\Games")).rejects.toBeInstanceOf(DesktopOnlyError);
   });
+  it("rejects all browser Windows filesystem mutations", async () => {
+    await expect(getServices().configs.read("C:/game.cfg")).rejects.toBeInstanceOf(DesktopOnlyError);
+    await expect(getServices().configs.write("C:/game.cfg", "edited")).rejects.toBeInstanceOf(DesktopOnlyError);
+    await expect(getServices().backups.create("C:/game.cfg", "old")).rejects.toBeInstanceOf(DesktopOnlyError);
+    await expect(getServices().backups.restore("C:/backup.bak")).rejects.toBeInstanceOf(DesktopOnlyError);
+    await expect(getServices().presets.apply("730", [{ path:"C:/game.cfg",content:"edited" }])).rejects.toBeInstanceOf(DesktopOnlyError);
+    await expect(getServices().downloads.start("a","https://example.org/file")).rejects.toBeInstanceOf(DesktopOnlyError);
+    await expect(getServices().library.launch(730)).rejects.toBeInstanceOf(DesktopOnlyError);
+  });
   it("names the native detection command", () => {
     expect(NATIVE_COMMANDS.detectInstallPath).toBe("detect_install_path");
   });
