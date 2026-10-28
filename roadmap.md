@@ -1,5 +1,6 @@
 # Tasks
-- [ ] Clarify intended use of the supplied Apify actor-run resurrection link before restarting a potentially billable run or integrating its data.
+- [x] Clarify Apify link: user wants its results as supplemental Steam metadata, not an unapproved run restart.
+- [ ] Inspect Apify run and dataset, validate game metadata, and integrate only verified safe fields (requires secure Apify connection; not a substitute for official ownership API).
 - [ ] Integrate official Steam metadata, name/App ID search, linked profiles and owned games without replacing native installation detection (blocked: Steam connection declined; awaiting chosen approach for credential-required catalog/owned games).
 - [x] Audit desktop functionality and provide incomplete-feature list in the staged completion plan.
 - [x] Implement measured Steam detection, authorized configuration writes, native backup/restore, and Steam launch; filesystem tests and emulated UI passed.
