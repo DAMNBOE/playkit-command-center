@@ -22,6 +22,7 @@ export const tauriServices: AppServices = {
     canControlWindow: true,
   },
   library: {
+    lookupSteamApp: (appId) => invoke(C.lookupSteamApp, { appId }),
     scanLibrary: (libraryPath) => invoke(C.scanLibrary, { libraryPath }),
     detectInstallPath: (appId, name) => invoke(C.detectInstallPath, { appId, name }),
     listGameFiles: (installPath) => invoke(C.listGameFiles, { installPath }),

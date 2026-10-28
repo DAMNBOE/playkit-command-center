@@ -37,7 +37,11 @@ export interface DetectedGame {
   sizeBytes: number;
 }
 
+export interface SteamSearchResult { appId: number; name: string; image: string }
+
 export interface GameLibraryService {
+  /** Read Steam's public catalog through the native HTTP client. Desktop only. */
+  lookupSteamApp(appId: number): Promise<SteamSearchResult[]>;
   /** Scan Steam libraries for installed games. Desktop only. */
   scanLibrary(libraryPath: string): Promise<DetectedGame[]>;
   /** Resolve install folder for a game. Desktop only. */
