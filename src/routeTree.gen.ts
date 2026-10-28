@@ -21,6 +21,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as GamesIndexRouteImport } from './routes/games.index'
 import { Route as GamesGameIdRouteImport } from './routes/games.$gameId'
 import { Route as SteamCompleteRouteImport } from './routes/steam/complete'
+import { Route as SteamConnectRouteImport } from './routes/steam/connect'
 import { Route as ApiPublicSteamCallbackRouteImport } from './routes/api/public/steam/callback'
 
 const IndexRoute = IndexRouteImport.update({
@@ -83,6 +84,11 @@ const SteamCompleteRoute = SteamCompleteRouteImport.update({
   path: '/steam/complete',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SteamConnectRoute = SteamConnectRouteImport.update({
+  id: '/steam/connect',
+  path: '/steam/connect',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicSteamCallbackRoute = ApiPublicSteamCallbackRouteImport.update({
   id: '/api/public/steam/callback',
   path: '/api/public/steam/callback',
@@ -101,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/games/$gameId': typeof GamesGameIdRoute
   '/steam/complete': typeof SteamCompleteRoute
+  '/steam/connect': typeof SteamConnectRoute
   '/games/': typeof GamesIndexRoute
   '/api/public/steam/callback': typeof ApiPublicSteamCallbackRoute
 }
@@ -115,6 +122,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/games/$gameId': typeof GamesGameIdRoute
   '/steam/complete': typeof SteamCompleteRoute
+  '/steam/connect': typeof SteamConnectRoute
   '/games': typeof GamesIndexRoute
   '/api/public/steam/callback': typeof ApiPublicSteamCallbackRoute
 }
@@ -131,6 +139,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/games/$gameId': typeof GamesGameIdRoute
   '/steam/complete': typeof SteamCompleteRoute
+  '/steam/connect': typeof SteamConnectRoute
   '/games/': typeof GamesIndexRoute
   '/api/public/steam/callback': typeof ApiPublicSteamCallbackRoute
 }
@@ -148,6 +157,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/games/$gameId'
     | '/steam/complete'
+    | '/steam/connect'
     | '/games/'
     | '/api/public/steam/callback'
   fileRoutesByTo: FileRoutesByTo
@@ -162,6 +172,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/games/$gameId'
     | '/steam/complete'
+    | '/steam/connect'
     | '/games'
     | '/api/public/steam/callback'
   id:
@@ -177,6 +188,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/games/$gameId'
     | '/steam/complete'
+    | '/steam/connect'
     | '/games/'
     | '/api/public/steam/callback'
   fileRoutesById: FileRoutesById
@@ -192,6 +204,7 @@ export interface RootRouteChildren {
   PresetsRoute: typeof PresetsRoute
   SettingsRoute: typeof SettingsRoute
   SteamCompleteRoute: typeof SteamCompleteRoute
+  SteamConnectRoute: typeof SteamConnectRoute
   ApiPublicSteamCallbackRoute: typeof ApiPublicSteamCallbackRoute
 }
 
@@ -281,6 +294,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SteamCompleteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/steam/connect': {
+      id: '/steam/connect'
+      path: '/steam/connect'
+      fullPath: '/steam/connect'
+      preLoaderRoute: typeof SteamConnectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/steam/callback': {
       id: '/api/public/steam/callback'
       path: '/api/public/steam/callback'
@@ -314,6 +334,7 @@ const rootRouteChildren: RootRouteChildren = {
   PresetsRoute: PresetsRoute,
   SettingsRoute: SettingsRoute,
   SteamCompleteRoute: SteamCompleteRoute,
+  SteamConnectRoute: SteamConnectRoute,
   ApiPublicSteamCallbackRoute: ApiPublicSteamCallbackRoute,
 }
 export const routeTree = rootRouteImport
