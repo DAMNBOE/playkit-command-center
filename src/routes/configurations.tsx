@@ -45,7 +45,7 @@ function ConfigManager() {
   const navigate = useNavigate({ from: "/configurations" });
   const { update, log, notify, fail } = useStore();
   const { configs, games, gameById } = useGameVisibility();
-  const { backup, restore, exportFile } = useConfigActions();
+  const { backup, restore, exportFile, save: saveConfig, refresh } = useConfigActions();
   const [q, setQ] = useState("");
   const gameFilter = search.game ?? "all";
   const [draft, setDraft] = useState("");
@@ -72,29 +72,27 @@ function ConfigManager() {
     navigate({ search: (s) => ({ ...s, file: id }) });
   };
 
+  useEffect(() => {
+    if (!selected?.native) return;
+    let active = true;
+    void getServices().configs.read(selected.path).then(content => {
+      if (!active) return;
+      if (content === null) throw new Error("File no longer exists");
+      setDraft(content);
+      update("configs", cs => cs.map(c => c.id === selected.id ? { ...c, content } : c));
+    }).catch(e => { if (active) fail("Could not read configuration",String(e)); });
+    return () => { active = false; };
+  }, [selected?.id, selected?.path, selected?.native, update, fail]);
   const save = async () => {
     if (!selected) return;
-    if (selected.format === "json") {
-      try { JSON.parse(draft); } catch (e) { fail("Invalid JSON", (e as Error).message); return; }
-    }
     setSaving(true);
-    try {
-      await getServices().configs.write(selected.path, draft);
-    } catch (e) {
-      setSaving(false);
-      fail("Could not save configuration", (e as Error).message);
-      return;
-    }
-    update("configs", (cs) => cs.map((c) => c.id === selected.id ? { ...c, content: draft, modifiedAt: new Date().toISOString(),
-      backups: [{ id: Math.random().toString(36).slice(2), label: "Auto backup before save", createdAt: new Date().toISOString(), content: c.content }, ...c.backups].slice(0, 10) } : c));
-    update("games", (gs) => gs.map((g) => g.id === selected.gameId ? { ...g, lastModified: new Date().toISOString() } : g));
-    log("config", `Edited ${selected.name}`, selected.gameId);
-    notify("Configuration saved", "A backup of the previous version was kept.");
+    await saveConfig(selected,draft);
     setSaving(false);
   };
 
   const doRename = () => {
     if (!selected) return;
+    if (selected.native) { fail("Native file rename unavailable", "Remove the tracked file and select its new location after renaming it in Windows."); return; }
     const n = renameVal.trim();
     if (!/^[\w\-. ]+\.[a-z0-9]+$/i.test(n)) return setRenameErr("Use a valid file name with an extension");
     if (configs.some((c) => c.gameId === selected.gameId && c.name === n && c.id !== selected.id)) return setRenameErr("A file with this name already exists for this game");
@@ -107,8 +105,8 @@ function ConfigManager() {
   const doDelete = () => {
     if (!selected) return;
     update("configs", (cs) => cs.filter((c) => c.id !== selected.id));
-    log("config", `Deleted ${selected.name}`, selected.gameId);
-    notify("Configuration deleted", selected.name);
+    log("config", `Removed ${selected.name} from workspace`, selected.gameId);
+    notify("Configuration removed from workspace", "The file and native backups on disk were not deleted.");
     navigate({ search: (s) => ({ ...s, file: undefined }) });
   };
 
@@ -148,7 +146,7 @@ function ConfigManager() {
           <div className="flex flex-wrap items-center gap-1 border-b px-3 py-2">
             <div className="mr-auto min-w-0 basis-full sm:basis-0 sm:flex-1">
               <p className="flex min-w-0 items-center gap-2 truncate font-mono text-[13px] font-semibold">{selected.name}{dirty && <span className="size-1.5 rounded-full bg-warning" title="Unsaved changes" />}</p>
-              <p className="truncate font-mono text-[10px] text-muted-foreground">{selected.path}</p>
+              <p className="truncate font-mono text-[10px] text-muted-foreground">{selected.native ? selected.path : "Workspace copy · original file unchanged"}</p>
             </div>
             <ToolBtn label="Revert changes" icon={Undo2} disabled={!dirty} onClick={() => setDraft(selected.content)} />
             <ToolBtn label="Create backup" icon={Archive} onClick={() => backup(selected)} />
@@ -157,7 +155,7 @@ function ConfigManager() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild><Button size="icon" variant="ghost" className="size-8"><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => { setRenameVal(selected.name); setRenameErr(""); setRenameOpen(true); }}><Pencil className="size-4" /> Rename</DropdownMenuItem>
+                <DropdownMenuItem disabled={selected.native} onClick={() => { setRenameVal(selected.name); setRenameErr(""); setRenameOpen(true); }}><Pencil className="size-4" /> Rename</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate({ to: "/games/$gameId", params: { gameId: selected.gameId } })}>Open game</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteOpen(true)}><Trash2 className="size-4" /> Delete</DropdownMenuItem>

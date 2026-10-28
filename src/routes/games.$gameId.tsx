@@ -1,13 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Archive, ArrowLeft, FileCog, FileDown, FileUp, Folder, FileText, Layers, Plus, Star } from "lucide-react";
+import { Archive, ArrowLeft, FileCog, FileDown, FileUp, Folder, FileText, Layers, Plus, Star, Play } from "lucide-react";
 import { fmtDate, timeAgo, useStore, useGameVisibility } from "@/lib/store";
 import { ActivityIcon, ConfigBadge, EmptyState, GameCover, InstallBadge, Panel } from "@/components/app/bits";
 import { ImportConfigDialog, PresetDialog } from "@/components/app/dialogs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useConfigActions } from "@/lib/config-actions";
+import { isSupportedConfig } from "@/lib/preset-files";
+import { useConfigActions, loadNativeConfig } from "@/lib/config-actions";
 import { getEnvironment, getServices, type LocalFileEntry } from "@/services";
 import { cn } from "@/lib/utils";
 
@@ -29,7 +30,7 @@ const fmtSize = (b: number) => (b > 1e6 ? `${(b / 1e6).toFixed(1)} MB` : b > 1e3
 
 function GameDetails() {
   const { gameId } = Route.useParams();
-  const { update, hydrated, fail } = useStore();
+  const { update, hydrated, fail, notify, log } = useStore();
   const { gameById, configs, presets, activity } = useGameVisibility();
   const navigate = useNavigate();
   const { backup, exportFile } = useConfigActions();
@@ -54,6 +55,14 @@ function GameDetails() {
   const gPresets = presets.filter((p) => p.gameId === game.id);
   const gActivity = activity.filter((a) => a.gameId === game.id);
 
+  const openConfig = async (path: string) => {
+    try { const c = await loadNativeConfig(path,game.id); update("configs",cs => [c,...cs.filter(x => x.path !== path)]); update("games",gs => gs.map(g => g.id === game.id ? { ...g,configStatus:"partial",lastModified:new Date().toISOString() } : g)); navigate({ to:"/configurations",search:{file:c.id} }); }
+    catch(e) { fail("Could not open configuration",String(e)); }
+  };
+  const launch = async () => {
+    try { await getServices().library.launch(game.appId); notify("Launch requested through Steam",game.name); log("game",`Requested Steam launch for ${game.name}`,game.id); }
+    catch(e) { fail("Could not launch game",String(e)); }
+  };
   const exportAll = () => {
     if (!gConfigs.length) return fail("Nothing to export", "This game has no configurations yet.");
     gConfigs.forEach(exportFile);
@@ -85,6 +94,7 @@ function GameDetails() {
             <p className="truncate font-mono text-[11px] text-muted-foreground">{game.installPath}</p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="secondary" disabled={!game.verified || !getEnvironment().canDetectGames} onClick={launch}><Play className="size-4" /> Launch</Button>
             <Button size="sm" onClick={() => navigate({ to: "/configurations", search: { game: game.id } })}><FileCog className="size-4" /> Manage Configurations</Button>
             <Button size="sm" variant="secondary" onClick={() => setImportOpen(true)}><FileDown className="size-4" /> Import</Button>
             <Button size="sm" variant="secondary" onClick={exportAll}><FileUp className="size-4" /> Export</Button>
@@ -152,6 +162,7 @@ function GameDetails() {
                     {f.isDirectory ? <Folder className="size-4 text-info" /> : <FileText className="size-4 text-muted-foreground" />}
                     <span className="flex-1 font-mono">{f.name}</span>
                     <span className="text-muted-foreground">{f.isDirectory ? "Folder" : fmtSize(f.sizeBytes)}</span>
+                    {!f.isDirectory && isSupportedConfig(f.name) && <Button size="sm" variant="ghost" onClick={() => openConfig(f.path)}>Open config</Button>}
                   </div>
                 ))}
               </div>
