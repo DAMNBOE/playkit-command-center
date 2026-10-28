@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { RefreshCw, Gamepad2, LayoutGrid, List, Plus, Search, Star } from "lucide-react";
 import { useStore, useGameVisibility, fmtDate, timeAgo, uid } from "@/lib/store";
+import { mergeDetectedGames } from "@/lib/desktop-state";
 import { getServices, isDesktopRuntime } from "@/services";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ConfigBadge, EmptyState, GameCover, InstallBadge, PageToolbar } from "@/components/app/bits";
@@ -41,21 +42,9 @@ function GamesLibrary() {
     setScanning(true);
     try {
       const found = await getServices().library.scanLibrary(settings.libraryPath);
-      let added = 0;
-      update("games", (gs) => {
-        const byApp = new Map(gs.map((g) => [g.appId, g]));
-        const next = gs.map((g) => {
-          const f = found.find((x) => x.appId === g.appId);
-          return f ? { ...g, installed: true, installPath: f.installPath, sizeGb: +(f.sizeBytes / 1073741824).toFixed(1) } : g;
-        });
-        for (const f of found) if (!byApp.has(f.appId)) {
-          added++;
-          next.push({ id: uid(), name: f.name, appId: f.appId, installed: true, configStatus: "none", lastModified: new Date().toISOString(), installPath: f.installPath, sizeGb: +(f.sizeBytes / 1073741824).toFixed(1), genre: "Uncategorized", hue: (f.appId * 37) % 360, favorite: false, developer: "—" });
-        }
-        return next;
-      });
+      update("games", gs => mergeDetectedGames(gs, found));
       log("game", `Steam scan found ${found.length} installed games`);
-      notify("Steam library scanned", `${found.length} installed games found${added ? `, ${added} added` : ""}`);
+      notify("Steam library scanned", `${found.length} installed games found`);
     } catch (e) { fail("Steam scan failed", (e as Error).message); }
     finally { setScanning(false); }
   };

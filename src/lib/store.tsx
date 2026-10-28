@@ -3,6 +3,8 @@ import { toast } from "sonner";
 import type { Activity, ActivityType, ConfigFile, Download, Game, Plugin, Preset, Settings } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { defaultSettings, sampleActivity, sampleConfigs, sampleDownloads, sampleGames, samplePlugins, samplePresets } from "@/mocks/sample-data";
+import { getServices, isDesktopRuntime } from "@/services";
+import { mergeDetectedGames, reconcileDownloads, applyDownloadProgress } from "./desktop-state";
 import { withPopularGames } from "@/mocks/popular-games";
 import { matchesGameIdentity, visibleGameRecords } from "./game-visibility";
 
@@ -17,11 +19,13 @@ interface State {
 }
 
 const initial: State = {
-  games: withPopularGames(sampleGames), configs: sampleConfigs, presets: samplePresets, downloads: sampleDownloads,
+  games: withPopularGames(sampleGames), configs: sampleConfigs, presets: samplePresets, downloads: [],
   plugins: samplePlugins, activity: sampleActivity, settings: defaultSettings,
 };
 
 const KEY = "afscripts:state:v1";
+const DESKTOP_KEY = "afscripts:desktop:state:v2";
+const emptyDesktop: State = { games: [], configs: [], presets: [], downloads: [], plugins: [], activity: [], settings: { ...defaultSettings, libraryPath: "", downloadPath: "" } };
 export const uid = () => Math.random().toString(36).slice(2, 10);
 
 export type SyncStatus = "off" | "syncing" | "synced" | "error";
@@ -52,17 +56,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(KEY);
+      const desktop = isDesktopRuntime();
+      const raw = localStorage.getItem(desktop ? DESKTOP_KEY : KEY);
+      if (desktop) setState(emptyDesktop);
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<State>;
-        setState((s) => ({ ...s, ...parsed, settings: { ...defaultSettings, ...parsed.settings }, games: withPopularGames(parsed.games ?? s.games) }));
+        setState((s) => ({ ...s, ...parsed, settings: { ...defaultSettings, ...parsed.settings }, games: desktop ? mergeDetectedGames(parsed.games ?? [], []) : withPopularGames(parsed.games ?? s.games), downloads: desktop ? reconcileDownloads(parsed.downloads ?? []) : [] }));
       }
     } catch { /* ignore corrupt storage */ }
     setHydrated(true);
   }, []);
 
   useEffect(() => {
-    if (hydrated) localStorage.setItem(KEY, JSON.stringify(state));
+    if (hydrated) localStorage.setItem(isDesktopRuntime() ? DESKTOP_KEY : KEY, JSON.stringify(state));
   }, [state, hydrated]);
 
   // ---- Cloud sync: signed-in users get their state saved to their account ----
@@ -71,7 +77,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const remoteReady = useRef(false);
 
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || isDesktopRuntime()) return;
     const load = async (user: { id: string; email?: string | undefined } | null) => {
       remoteReady.current = false;
       if (!user) { setAccount(null); setSyncStatus("off"); return; }
@@ -97,7 +103,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [hydrated]);
 
   useEffect(() => {
-    if (!account || !remoteReady.current) return;
+    if (isDesktopRuntime() || !account || !remoteReady.current) return;
     setSyncStatus("syncing");
     const t = setTimeout(async () => {
       const { error } = await supabase.from("user_state").upsert({ user_id: account.id, state: state as never, updated_at: new Date().toISOString() });
@@ -120,7 +126,48 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const fail = useCallback((title: string, description?: string) => { toast.error(title, { description }); }, []);
 
-  const reset = useCallback(() => { localStorage.removeItem(KEY); setState(initial); }, []);
+  const reset = useCallback(() => { localStorage.removeItem(isDesktopRuntime() ? DESKTOP_KEY : KEY); setState(isDesktopRuntime() ? emptyDesktop : { ...initial, downloads: [] }); }, []);
+
+  const scanned = useRef(false);
+  useEffect(() => {
+    if (!hydrated || !isDesktopRuntime() || !state.settings.autoDetect || scanned.current) return;
+    scanned.current = true;
+    void getServices().library.scanLibrary(state.settings.libraryPath).then(found => {
+      update("games", gs => mergeDetectedGames(gs, found));
+      log("game", `Steam scan found ${found.length} installed games`);
+    }).catch(e => fail("Steam scan failed", String(e)));
+  }, [hydrated, state.settings.autoDetect, state.settings.libraryPath, update, log, fail]);
+
+  const eventsReady = useRef(false);
+  useEffect(() => {
+    if (!hydrated || !isDesktopRuntime()) return;
+    try {
+      const un = getServices().downloads.onProgress(p => {
+        if (!p.id) { fail("Download events unavailable", p.error ?? "Retry after reopening AfScripts"); return; }
+        const d = stateRef.current.downloads.find(x => x.id === p.id);
+        update("downloads", ds => ds.map(x => applyDownloadProgress(x,p)));
+        if (p.status === "completed" && d?.status !== "completed") { log("download", `Downloaded ${d?.name ?? "file"} to ${p.path}`, d?.gameId); notify("Download complete", p.path); }
+        if (p.status === "failed") fail("Download failed", p.error ?? "Transfer failed");
+        if (p.status === "cancelled") notify("Download cancelled", d?.name);
+      });
+      eventsReady.current = true;
+      return () => { eventsReady.current = false; un(); };
+    } catch(e) { fail("Download events unavailable", String(e)); }
+  }, [hydrated, update, log, notify, fail]);
+  const starting = useRef(new Set<string>());
+  useEffect(() => {
+    if (!hydrated || !isDesktopRuntime() || !eventsReady.current) return;
+    const running = state.downloads.filter(d => d.status === "active" || d.status === "paused").length + starting.current.size;
+    const slots = Math.max(0, state.settings.maxConcurrent - running);
+    for (const d of state.downloads.filter(d => d.status === "queued" && d.url && !starting.current.has(d.id)).slice(0,slots)) {
+      starting.current.add(d.id);
+      update("downloads", ds => ds.map(x => x.id === d.id ? { ...x, status:"active", error:undefined } : x));
+      void getServices().downloads.start(d.id,d.url ?? "",state.settings.downloadPath).catch(e => {
+        update("downloads",ds => ds.map(x => x.id === d.id ? { ...x,status:"failed",error:String(e) } : x));
+        fail("Could not start download",String(e));
+      }).finally(() => starting.current.delete(d.id));
+    }
+  }, [hydrated, state.downloads, state.settings.maxConcurrent, state.settings.downloadPath, update, fail]);
 
   const value = useMemo<Store>(() => ({
     ...state, hydrated, update, log, notify, fail, reset, account, syncStatus, gameQuery, setGameQuery,

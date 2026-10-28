@@ -3,6 +3,9 @@
  * Keep in sync with `src-tauri/src/commands.rs` once packaging starts.
  */
 export const NATIVE_COMMANDS = {
+  launchGame: "launch_game",
+  selectConfigFile: "select_config_file",
+  listBackups: "list_backups",
   lookupSteamApp: "lookup_steam_app",
   scanLibrary: "scan_library",
   detectInstallPath: "detect_install_path",
