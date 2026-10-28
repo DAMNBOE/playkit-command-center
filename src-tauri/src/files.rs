@@ -6,13 +6,17 @@ pub fn unique() -> String {
     static N: AtomicU64 = AtomicU64::new(0);
     format!("{}-{}-{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_nanos(), std::process::id(), N.fetch_add(1, Ordering::Relaxed))
 }
+pub fn is_link(md: &fs::Metadata) -> bool {
+    #[cfg(windows)] { use std::os::windows::fs::MetadataExt; md.file_type().is_symlink() || md.file_attributes() & 0x400 != 0 }
+    #[cfg(not(windows))] { md.file_type().is_symlink() }
+}
 pub fn validate(path: &Path) -> Result<PathBuf, String> {
     if !path.is_absolute() { return Err("Path must be absolute".into()); }
     let ext = path.extension().and_then(|x| x.to_str()).unwrap_or("").to_ascii_lowercase();
     if !EXTS.contains(&ext.as_str()) { return Err("Unsupported text configuration file".into()); }
     let mut ancestor = Some(path);
     while let Some(p) = ancestor {
-        if fs::symlink_metadata(p).map(|m| m.file_type().is_symlink()).unwrap_or(false) { return Err("Linked configuration paths are not supported".into()); }
+        if fs::symlink_metadata(p).map(|m| is_link(&m)).unwrap_or(false) { return Err("Linked configuration paths are not supported".into()); }
         ancestor = p.parent();
     }
     let canonical = fs::canonicalize(path).map_err(|e| e.to_string())?;
@@ -29,20 +33,36 @@ pub fn backup(path: &Path, dir: &Path) -> Result<PathBuf, String> {
     file.write_all(data.as_bytes()).and_then(|_| file.sync_all()).map_err(|e| e.to_string())?;
     Ok(dest)
 }
-/// Always preserves the existing disk version before replacing it.
-pub fn replace(path: &Path, content: &str, backups: &Path) -> Result<PathBuf, String> {
+/// Make one durable backup, optionally record metadata, then replace the existing file.
+pub fn replace_recorded<F>(path: &Path, content: &str, backups: &Path, record: F) -> Result<PathBuf, String>
+where F: FnOnce(&Path, &Path) -> Result<(), String> {
     if content.len() > MAX_BYTES { return Err("Content is larger than 4 MB".into()); }
     let p = validate(path)?;
     let saved = backup(&p, backups)?;
+    record(&p, &saved)?;
     let tmp = p.with_extension(format!("{}.afscripts-tmp", unique()));
     let result = (|| {
         let mut out = fs::OpenOptions::new().create_new(true).write(true).open(&tmp).map_err(|e| e.to_string())?;
         out.write_all(content.as_bytes()).and_then(|_| out.sync_all()).map_err(|e| e.to_string())?;
         fs::set_permissions(&tmp, fs::metadata(&p).map_err(|e| e.to_string())?.permissions()).map_err(|e| e.to_string())?;
-        fs::rename(&tmp, &p).map_err(|e| e.to_string())
+        drop(out);
+        atomic_replace(&tmp, &p)
     })();
     if result.is_err() { let _ = fs::remove_file(tmp); }
     result.map(|_| saved)
+}
+pub fn replace(path: &Path, content: &str, backups: &Path) -> Result<PathBuf, String> { replace_recorded(path, content, backups, |_,_| Ok(())) }
+#[cfg(not(windows))]
+fn atomic_replace(tmp: &Path, dest: &Path) -> Result<(), String> { fs::rename(tmp,dest).map_err(|e| e.to_string()) }
+#[cfg(windows)]
+fn atomic_replace(tmp: &Path, dest: &Path) -> Result<(), String> {
+    use std::os::windows::ffi::OsStrExt;
+    #[link(name="kernel32")]
+    extern "system" { fn ReplaceFileW(replaced: *const u16, replacement: *const u16, backup: *const u16, flags: u32, exclude: *mut std::ffi::c_void, reserved: *mut std::ffi::c_void) -> i32; }
+    let replaced: Vec<u16> = dest.as_os_str().encode_wide().chain(Some(0)).collect();
+    let replacement: Vec<u16> = tmp.as_os_str().encode_wide().chain(Some(0)).collect();
+    let ok = unsafe { ReplaceFileW(replaced.as_ptr(),replacement.as_ptr(),std::ptr::null(),0,std::ptr::null_mut(),std::ptr::null_mut()) };
+    if ok == 0 { Err(std::io::Error::last_os_error().to_string()) } else { Ok(()) }
 }
 pub fn disk_usage(root: &Path) -> Result<u64, String> {
     let mut total = 0u64;
@@ -51,7 +71,7 @@ pub fn disk_usage(root: &Path) -> Result<u64, String> {
         for item in fs::read_dir(dir).map_err(|e| e.to_string())? {
             let item = item.map_err(|e| e.to_string())?;
             let md = fs::symlink_metadata(item.path()).map_err(|e| e.to_string())?;
-            if md.file_type().is_symlink() { continue; }
+            if is_link(&md) { continue; }
             if md.is_dir() { stack.push(item.path()); } else if md.is_file() { total = total.saturating_add(md.len()); }
         }
     }
@@ -93,6 +113,7 @@ pub fn safe_filename(name: &str) -> Result<String, String> {
     use super::*;
     fn fixture() -> (PathBuf, PathBuf) { let dir = std::env::temp_dir().join(format!("afscripts-test-{}", unique())); fs::create_dir_all(&dir).unwrap(); let file = dir.join("game.cfg"); fs::write(&file, "original").unwrap(); (dir, file) }
     #[test] fn preserves_backup_before_write_and_restore() { let (dir,p) = fixture(); let b = replace(&p,"edited",&dir.join("backups")).unwrap(); assert_eq!(fs::read_to_string(&b).unwrap(), "original"); assert_eq!(read(&p).unwrap(), "edited"); let b2 = replace(&p,&fs::read_to_string(b).unwrap(),&dir.join("backups")).unwrap(); assert_eq!(read(&p).unwrap(),"original"); assert_eq!(fs::read_to_string(b2).unwrap(),"edited"); fs::remove_dir_all(dir).unwrap(); }
+    #[test] fn one_backup_per_write_and_metadata_failure_prevents_overwrite() { let (dir,p)=fixture(); let bdir=dir.join("b"); replace_recorded(&p,"new",&bdir,|_,_| Ok(())).unwrap(); assert_eq!(fs::read_dir(&bdir).unwrap().count(),1); assert!(replace_recorded(&p,"bad",&bdir,|_,_| Err("metadata failed".into())).is_err()); assert_eq!(read(&p).unwrap(),"new"); fs::remove_dir_all(dir).unwrap(); }
     #[test] fn rejects_binary_and_relative_paths() { assert!(validate(Path::new("game.cfg")).is_err()); let (dir,_) = fixture(); let bin=dir.join("game.exe"); fs::write(&bin,"binary").unwrap(); assert!(validate(&bin).is_err()); fs::remove_dir_all(dir).unwrap(); }
     #[test] fn failed_validation_preserves_file() { let (dir,p)=fixture(); assert!(replace(&p,&"x".repeat(MAX_BYTES+1),&dir.join("backups")).is_err()); assert_eq!(read(&p).unwrap(),"original"); fs::remove_dir_all(dir).unwrap(); }
     #[test] fn backups_never_collide() { let (dir,p)=fixture(); assert_ne!(backup(&p,&dir.join("b")).unwrap(),backup(&p,&dir.join("b")).unwrap()); fs::remove_dir_all(dir).unwrap(); }

@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { toast } from "sonner";
 import type { Activity, ActivityType, ConfigFile, Download, Game, Plugin, Preset, Settings } from "./types";
 import { supabase } from "@/integrations/supabase/client";
-import { defaultSettings, sampleActivity, sampleConfigs, sampleDownloads, sampleGames, samplePlugins, samplePresets } from "@/mocks/sample-data";
+import { defaultSettings, sampleActivity, sampleConfigs, sampleGames, samplePlugins, samplePresets } from "@/mocks/sample-data";
 import { getServices, isDesktopRuntime } from "@/services";
 import { mergeDetectedGames, reconcileDownloads, applyDownloadProgress } from "./desktop-state";
 import { withPopularGames } from "@/mocks/popular-games";
@@ -87,7 +87,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (error) { setSyncStatus("error"); toast.error("Couldn't load your synced data", { description: error.message }); return; }
       if (data?.state && Object.keys(data.state as object).length) {
         const remote = data.state as Partial<State>;
-        setState((s) => ({ ...s, ...remote, settings: { ...defaultSettings, ...remote.settings } }));
+        setState((s) => ({ ...s, ...remote, downloads: [], settings: { ...defaultSettings, ...remote.settings } }));
       } else {
         const { error: upErr } = await supabase.from("user_state").upsert({ user_id: user.id, state: stateRef.current as never, updated_at: new Date().toISOString() });
         if (upErr) { setSyncStatus("error"); return; }
@@ -166,7 +166,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       void getServices().downloads.start(d.id,d.url ?? "",state.settings.downloadPath).catch(e => {
         update("downloads",ds => ds.map(x => x.id === d.id ? { ...x,status:"failed",error:String(e) } : x));
         fail("Could not start download",String(e));
-      }).finally(() => starting.current.delete(d.id));
+      }).finally(() => { starting.current.delete(d.id); update("downloads",ds => [...ds]); });
     }
   }, [hydrated, state.downloads, state.settings.maxConcurrent, state.settings.downloadPath, update, fail]);
 

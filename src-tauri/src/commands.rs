@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
-use std::io::{Read, Write};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -89,8 +89,11 @@ fn steam_root() -> Option<PathBuf> {
 /// Pull every `"key" "value"` pair out of a Valve KeyValues (.vdf / .acf) file.
 fn vdf_pairs(text: &str) -> Vec<(String, String)> { crate::files::pairs(text) }
 
+fn remembered_libraries() -> &'static Mutex<Vec<PathBuf>> {
+    static L: OnceLock<Mutex<Vec<PathBuf>>> = OnceLock::new(); L.get_or_init(|| Mutex::new(Vec::new()))
+}
 fn library_folders(extra: &str) -> Vec<PathBuf> {
-    let mut libs: Vec<PathBuf> = Vec::new();
+    let mut libs: Vec<PathBuf> = remembered_libraries().lock().map(|l|l.clone()).unwrap_or_default();
     if !extra.trim().is_empty() { libs.push(PathBuf::from(extra.trim())); }
     if let Some(root) = steam_root() {
         libs.push(root.clone());
@@ -115,7 +118,8 @@ fn read_manifests(lib: &Path) -> Vec<DetectedGame> {
         let folder = PathBuf::from(kv.get("installdir")?);
         if folder.components().count() != 1 || !matches!(folder.components().next(), Some(std::path::Component::Normal(_))) { return None; }
         let install = fs::canonicalize(apps.join("common").join(folder)).ok()?;
-        if !install.is_dir() { return None; }
+        let common=fs::canonicalize(apps.join("common")).ok()?;
+        if !install.is_dir() || !install.starts_with(common) { return None; }
         Some(DetectedGame {
             app_id: kv.get("appid")?.parse().ok()?,
             name: kv.get("name")?.clone(),
@@ -129,6 +133,7 @@ fn read_manifests(lib: &Path) -> Vec<DetectedGame> {
 pub fn scan_library(library_path: String) -> Result<Vec<DetectedGame>, String> {
     let libs = library_folders(&library_path);
     if libs.is_empty() { return Err("Steam was not found on this PC. Set the library folder in Settings.".into()); }
+    *remembered_libraries().lock().map_err(err)?=libs.clone();
     let mut games: Vec<DetectedGame> = libs.iter().flat_map(|l| read_manifests(l)).collect();
     let mut seen = std::collections::HashSet::new();
     games.retain(|g| seen.insert(g.app_id));
@@ -155,7 +160,7 @@ pub fn list_game_files(install_path: String) -> Result<Vec<LocalFileEntry>, Stri
     while let Some((dir, depth)) = stack.pop() {
         for e in fs::read_dir(&dir).map_err(err)?.flatten() {
             let Ok(md) = fs::symlink_metadata(e.path()) else { continue };
-            if md.file_type().is_symlink() { continue; }
+            if crate::files::is_link(&md) { continue; }
             let path = e.path();
             if md.is_dir() && depth < 3 { stack.push((path.clone(), depth + 1)); }
             out.push(LocalFileEntry {
@@ -191,9 +196,7 @@ pub fn create_backup(path: String, content: String) -> Result<BackupResult, Stri
 #[tauri::command]
 pub fn write_config_file(path: String, content: String) -> Result<(), String> {
     let p = check_config_path(&path)?;
-    // Create data AND metadata before mutation. Failure to record a backup prevents replacement.
-    create_backup(path, String::new())?;
-    crate::files::replace(&p, &content, &backup_dir()?)?; Ok(())
+    crate::files::replace_recorded(&p, &content, &backup_dir()?, record_backup)?; Ok(())
 }
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -260,9 +263,24 @@ fn jobs() -> &'static Mutex<HashMap<String, Arc<AtomicU8>>> {
 #[serde(rename_all = "camelCase")]
 struct Progress { id: String, received: u64, total: u64, status: &'static str, path: String, error: Option<String> }
 
+fn validate_download_url(url: &reqwest::Url) -> Result<(), String> {
+    if !["http","https"].contains(&url.scheme()) || !url.username().is_empty() || url.password().is_some() { return Err("Only public HTTP(S) file links without credentials are supported".into()); }
+    let host=url.host_str().ok_or("URL has no host")?;
+    let lower=host.to_ascii_lowercase();
+    if lower=="localhost" || lower.ends_with(".localhost") || lower.ends_with(".local") || !lower.contains('.') && !lower.contains(':') { return Err("Local network downloads are not supported".into()); }
+    if let Ok(ip)=host.trim_matches(|c| c=='[' || c==']').parse::<std::net::IpAddr>() {
+        let blocked = match ip {
+            std::net::IpAddr::V4(v) => v.is_private() || v.is_loopback() || v.is_link_local() || v.is_unspecified() || v.is_multicast() || v.is_broadcast(),
+            std::net::IpAddr::V6(v) => v.is_loopback() || v.is_unspecified() || v.is_multicast() || (v.segments()[0] & 0xfe00)==0xfc00 || (v.segments()[0] & 0xffc0)==0xfe80 || v.to_ipv4_mapped().map(|v|v.is_private() || v.is_loopback()).unwrap_or(false),
+        };
+        if blocked { return Err("Local network downloads are not supported".into()); }
+    }
+    Ok(())
+}
 #[tauri::command]
 pub fn start_download(app: AppHandle, id: String, url: String, download_path: String) -> Result<(), String> {
     let parsed = reqwest::Url::parse(&url).map_err(err)?;
+    validate_download_url(&parsed)?;
     if !parsed.username().is_empty() || parsed.password().is_some() { return Err("Download URL must not contain credentials".into()); }
     if !(url.starts_with("https://") || url.starts_with("http://")) { return Err("Only http(s) links can be downloaded".into()); }
     if let Some(flag) = jobs().lock().unwrap().get(&id) { flag.store(0, Ordering::SeqCst); return Ok(()); } // resume
@@ -275,38 +293,58 @@ pub fn start_download(app: AppHandle, id: String, url: String, download_path: St
     let dest = dir.join(format!("{}-{name}", crate::files::unique()));
     let partial = dest.with_extension("afscripts-part");
     jobs().lock().map_err(err)?.insert(id.clone(), flag.clone());
-    std::thread::spawn(move || {
+    tauri::async_runtime::spawn(async move {
         let emit = |received, total, status, error: Option<String>| {
             let _ = app.emit("download://progress", Progress { id: id.clone(), received, total, status, path: dest.to_string_lossy().to_string(), error });
         };
-        let result = (|| -> Result<Option<(u64, u64)>, String> {
-            let mut resp = reqwest::blocking::Client::builder().timeout(std::time::Duration::from_secs(300)).connect_timeout(std::time::Duration::from_secs(15)).build().map_err(err)?.get(&url).send().map_err(err)?.error_for_status().map_err(err)?;
-            let total = resp.content_length().unwrap_or(0);
-            let mut out = fs::OpenOptions::new().write(true).create_new(true).open(&partial).map_err(err)?;
-            let (mut got, mut buf, mut last) = (0u64, vec![0u8; 64 * 1024], std::time::Instant::now());
-            loop {
-                match flag.load(Ordering::SeqCst) {
-                    2 => { drop(out); let _ = fs::remove_file(&partial); return Ok(None); }
-                    1 => { std::thread::sleep(std::time::Duration::from_millis(200)); continue; }
-                    _ => {}
+        let result = async {
+            let client = reqwest::Client::builder().connect_timeout(std::time::Duration::from_secs(15))
+                .redirect(reqwest::redirect::Policy::custom(|attempt| {
+                    if attempt.previous().len() >= 5 { return attempt.error("Too many redirects"); }
+                    match validate_download_url(attempt.url()) { Ok(()) => attempt.follow(), Err(e) => attempt.error(e) }
+                })).build().map_err(err)?;
+            let request = client.get(&url).send();
+            tokio::pin!(request);
+            let mut response = loop {
+                tokio::select! {
+                    r = &mut request => break r.map_err(err)?.error_for_status().map_err(err)?,
+                    _ = tokio::time::sleep(std::time::Duration::from_millis(100)) => { if flag.load(Ordering::SeqCst)==2 { return Ok(None); } }
                 }
-                let n = resp.read(&mut buf).map_err(err)?;
-                if n == 0 { break; }
-                out.write_all(&buf[..n]).map_err(err)?;
-                got += n as u64;
-                if last.elapsed().as_millis() > 300 { emit(got, total, "active", None); last = std::time::Instant::now(); }
+            };
+            let total = response.content_length().unwrap_or(0);
+            let mut out = fs::OpenOptions::new().write(true).create_new(true).open(&partial).map_err(err)?;
+            let mut got = 0u64;
+            let mut last = std::time::Instant::now();
+            loop {
+                while flag.load(Ordering::SeqCst)==1 { tokio::time::sleep(std::time::Duration::from_millis(100)).await; }
+                if flag.load(Ordering::SeqCst)==2 { return Ok(None); }
+                let chunk = response.chunk();
+                tokio::pin!(chunk);
+                let deadline = tokio::time::sleep(std::time::Duration::from_secs(60));
+                tokio::pin!(deadline);
+                let data = loop {
+                    tokio::select! {
+                        r = &mut chunk => break r.map_err(err)?,
+                        _ = &mut deadline => return Err("Download stalled for 60 seconds".into()),
+                        _ = tokio::time::sleep(std::time::Duration::from_millis(100)) => { if flag.load(Ordering::SeqCst)==2 { return Ok(None); } }
+                    }
+                };
+                let Some(data)=data else { break; };
+                out.write_all(&data).map_err(err)?;
+                got += data.len() as u64;
+                if last.elapsed().as_millis() >= 300 { emit(got,total,"active",None); last=std::time::Instant::now(); }
             }
-            if flag.load(Ordering::SeqCst)==2 { drop(out); let _=fs::remove_file(&partial); return Ok(None); }
+            if flag.load(Ordering::SeqCst)==2 { return Ok(None); }
             out.sync_all().map_err(err)?; drop(out);
             fs::rename(&partial,&dest).map_err(err)?;
-            Ok(Some((got, total)))
-        })();
+            Ok(Some((got,total)))
+        }.await;
+        jobs().lock().map(|mut j| j.remove(&id)).ok();
         match result {
-            Ok(Some((g, t))) => emit(g, t.max(g), "completed", None),
-            Ok(None) => emit(0, 0, "cancelled", None),
-            Err(e) => { let _=fs::remove_file(&partial); emit(0, 0, "failed", Some(e)); },
+            Ok(Some((g,t))) => emit(g,t.max(g),"completed",None),
+            Ok(None) => { let _=fs::remove_file(&partial); emit(0,0,"cancelled",None); }
+            Err(e) => { let _=fs::remove_file(&partial); emit(0,0,"failed",Some(e)); }
         }
-        jobs().lock().unwrap().remove(&id);
     });
     Ok(())
 }
@@ -331,4 +369,18 @@ pub fn window_action(window: tauri::Window, action: String) -> Result<(), String
         "close" => window.close(),
         _ => return Err(format!("unknown window action {action}")),
     }.map_err(|e| e.to_string())
+}
+
+#[cfg(test)] mod tests {
+    use super::*;
+    #[test] fn manifests_ignore_missing_and_escaping_installs() {
+        let dir=std::env::temp_dir().join(crate::files::unique()); let apps=dir.join("steamapps");
+        fs::create_dir_all(apps.join("common/Valid")).unwrap();
+        fs::write(apps.join("appmanifest_730.acf"),r#""AppState" { "appid" "730" "name" "Counter-Strike 2" "installdir" "Valid" }"#).unwrap();
+        fs::write(apps.join("appmanifest_1.acf"),r#""AppState" { "appid" "1" "name" "Missing" "installdir" "Missing" }"#).unwrap();
+        fs::write(apps.join("appmanifest_2.acf"),r#""AppState" { "appid" "2" "name" "Escape" "installdir" "../outside" }"#).unwrap();
+        let games=read_manifests(&dir); assert_eq!(games.len(),1); assert_eq!(games[0].app_id,730);
+        fs::remove_dir_all(dir).unwrap();
+    }
+    #[test] fn downloads_reject_local_targets() { for u in ["file:///C:/a.cfg","http://localhost/a","http://127.0.0.1/a","http://192.168.1.2/a","http://[::1]/a"] { assert!(validate_download_url(&reqwest::Url::parse(u).unwrap()).is_err(),"{u}"); } assert!(validate_download_url(&reqwest::Url::parse("https://example.org/settings.zip").unwrap()).is_ok()); }
 }
