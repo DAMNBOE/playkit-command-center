@@ -1,5 +1,5 @@
 # Tasks
-- [ ] Audit desktop functionality and provide incomplete-feature list.
+- [x] Audit desktop functionality and provide incomplete-feature list in the staged completion plan.
 - [ ] Complete Steam detection, safe configuration writes, backup/restore, and Steam launching.
 - [ ] Connect persistent presets, authorized downloads, and real dashboard data.
 - [ ] Verify service/Rust tests and updated Windows installer (PC verification requires Windows).
