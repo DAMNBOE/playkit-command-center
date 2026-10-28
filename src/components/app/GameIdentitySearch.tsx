@@ -1,15 +1,32 @@
 import { parseAppId } from "@/lib/game-visibility";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Check, Loader2, Plus, Search, X } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { useStore } from "@/lib/store";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { searchSteamStore, type SteamSearchResult } from "@/lib/steam-search.functions";
+import { searchSteamStore } from "@/lib/steam-search.functions";
+import { getServices, isDesktopRuntime, type SteamSearchResult } from "@/services";
+
+type Lookup = (term: string) => Promise<SteamSearchResult[]>;
+const desktopLookup: Lookup = async (term) => {
+  const appId = parseAppId(term);
+  return appId ? getServices().library.lookupSteamApp(Number(appId)) : [];
+};
 
 export function GameIdentitySearch() {
-  const { gameQuery, setGameQuery, games, update, log, notify } = useStore();
+  // Do not mount the web RPC hook in a static Windows bundle.
+  return isDesktopRuntime() ? <IdentitySearch lookup={desktopLookup} /> : <WebIdentitySearch />;
+}
+
+function WebIdentitySearch() {
   const search = useServerFn(searchSteamStore);
+  const lookup = useCallback<Lookup>((term) => search({ data: { term } }), [search]);
+  return <IdentitySearch lookup={lookup} />;
+}
+
+function IdentitySearch({ lookup }: { lookup: Lookup }) {
+  const { gameQuery, setGameQuery, games, update, log, notify } = useStore();
   const [results, setResults] = useState<SteamSearchResult[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [error, setError] = useState("");
@@ -18,14 +35,17 @@ export function GameIdentitySearch() {
   useEffect(() => {
     if (term.length < 2 || !parseAppId(term)) { setResults([]); setStatus("idle"); return; }
     let cancelled = false;
+    setResults([]);
+    setError("");
     setStatus("loading");
     const t = setTimeout(() => {
-      search({ data: { term } })
+      // Promise boundary also catches synchronous adapter failures.
+      Promise.resolve().then(() => lookup(term))
         .then((r) => { if (!cancelled) { setResults(r); setStatus("idle"); } })
-        .catch((e: Error) => { if (!cancelled) { setError(e.message); setStatus("error"); } });
+        .catch((e: unknown) => { if (!cancelled) { setError(e instanceof Error ? e.message : String(e)); setStatus("error"); } });
     }, 400);
     return () => { cancelled = true; clearTimeout(t); };
-  }, [term, search]);
+  }, [term, lookup]);
 
   const owned = new Set(games.map((g) => g.appId));
   const add = (r: SteamSearchResult) => {
