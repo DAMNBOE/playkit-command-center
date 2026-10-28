@@ -14,6 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
+      steam_accounts: {
+        Row: {
+          avatar_url: string | null
+          connected_at: string
+          profile_status: string
+          profile_url: string
+          steam_id: string
+          updated_at: string
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          connected_at?: string
+          profile_status?: string
+          profile_url: string
+          steam_id: string
+          updated_at?: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          connected_at?: string
+          profile_status?: string
+          profile_url?: string
+          steam_id?: string
+          updated_at?: string
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      steam_link_attempts: {
+        Row: {
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          origin: string
+          token_hash: string
+          user_id: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          origin: string
+          token_hash: string
+          user_id: string
+        }
+        Update: {
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          origin?: string
+          token_hash?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      steam_openid_nonces: {
+        Row: {
+          created_at: string
+          nonce: string
+        }
+        Insert: {
+          created_at?: string
+          nonce: string
+        }
+        Update: {
+          created_at?: string
+          nonce?: string
+        }
+        Relationships: []
+      }
       user_state: {
         Row: {
           state: Json
@@ -37,7 +115,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      claim_steam_link_attempt: {
+        Args: {
+          attempt_id: string
+          expected_token_hash: string
+          response_nonce: string
+        }
+        Returns: {
+          linked_user_id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

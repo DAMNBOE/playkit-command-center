@@ -8,6 +8,13 @@
       "when": 1793103745322,
       "tag": "0000_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793206517497,
+      "tag": "0001_steam_openid_account_linking",
+      "breakpoints": true
     }
   ]
 }

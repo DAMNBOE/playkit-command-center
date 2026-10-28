@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState, type ReactNode } from "react";
 import { Check } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { SteamAccount } from "@/components/app/SteamAccount";
 import { Logo } from "@/components/app/bits";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -58,6 +59,7 @@ function SettingsPage() {
           </> : (
             <Item label="Not signed in" desc="Sign in to keep your data safe and use it on other devices. Windows workspace data stays on this PC; web workspace data stays in this browser."><Button size="sm" asChild><Link to="/auth">Sign in</Link></Button></Item>
           ))}
+          {section === "Account & Sync" && <SteamAccount />}
           {section === "General" && <>
             <Item label="Startup page" desc="Where AfScripts opens when launched.">
               <Select value={settings.startup} onValueChange={(v) => set("startup", v as Settings["startup"])}>
