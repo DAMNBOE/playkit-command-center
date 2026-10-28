@@ -155,7 +155,7 @@ function ConfigManager() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild><Button size="icon" variant="ghost" className="size-8"><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem disabled={selected.native} onClick={() => { setRenameVal(selected.name); setRenameErr(""); setRenameOpen(true); }}><Pencil className="size-4" /> Rename</DropdownMenuItem>
+                <DropdownMenuItem disabled={!!selected.native} onClick={() => { setRenameVal(selected.name); setRenameErr(""); setRenameOpen(true); }}><Pencil className="size-4" /> Rename</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate({ to: "/games/$gameId", params: { gameId: selected.gameId } })}>Open game</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteOpen(true)}><Trash2 className="size-4" /> Delete</DropdownMenuItem>

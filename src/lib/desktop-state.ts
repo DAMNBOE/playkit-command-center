@@ -2,7 +2,7 @@ import type { Game, Download } from './types';
 import type { DetectedGame, DownloadProgress } from '@/services/types';
 export function mergeDetectedGames(games: Game[], found: DetectedGame[]): Game[] {
   const byApp = new Map(games.map(g => [g.appId, g]));
-  const next = games.map(g => ({ ...g, installed: false, verified: false, installPath: '', sizeGb: 0 }));
+  const next: Game[] = games.map(g => ({ ...g, installed: false, verified: false, installPath: '', sizeGb: 0 }));
   for (const f of found) {
     const existing = byApp.get(f.appId);
     const detected: Game = { ...(existing ?? { id: `steam-${f.appId}`, configStatus: 'none', lastModified: '', genre: 'Uncategorized', hue: (f.appId * 37) % 360, favorite: false, developer: '—' }), name: f.name, appId: f.appId, installed: true, verified: true, installPath: f.installPath, sizeGb: f.sizeBytes / 1073741824 };

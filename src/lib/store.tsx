@@ -153,11 +153,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       eventsReady.current = true;
       return () => { eventsReady.current = false; un(); };
     } catch(e) { fail("Download events unavailable", String(e)); }
+    return undefined;
   }, [hydrated, update, log, notify, fail]);
   const starting = useRef(new Set<string>());
   useEffect(() => {
     if (!hydrated || !isDesktopRuntime() || !eventsReady.current) return;
-    const running = state.downloads.filter(d => d.status === "active" || d.status === "paused").length + starting.current.size;
+    const running = state.downloads.filter(d => d.status === "active" || d.status === "paused" || starting.current.has(d.id)).length;
     const slots = Math.max(0, state.settings.maxConcurrent - running);
     for (const d of state.downloads.filter(d => d.status === "queued" && d.url && !starting.current.has(d.id)).slice(0,slots)) {
       starting.current.add(d.id);
