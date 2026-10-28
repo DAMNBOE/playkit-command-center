@@ -73,7 +73,7 @@ function IdentitySearch({ lookup }: { lookup: Lookup }) {
           {status === "idle" && results.length === 0 && <p className="px-1 py-2 text-sm text-muted-foreground">No Steam games match.</p>}
           {status === "idle" && results.map((r) => (
             <div key={r.appId} className="flex items-center gap-3 rounded-md px-1 py-1.5 hover:bg-accent">
-              <img src={r.image} alt="" className="h-9 w-20 shrink-0 rounded object-cover" loading="lazy" />
+              {r.image ? <img src={r.image} alt="" className="h-9 w-20 shrink-0 rounded object-cover" loading="lazy" /> : <div className="h-9 w-20 shrink-0 rounded bg-muted" />}
               <div className="min-w-0 flex-1"><p className="truncate text-sm">{r.name}</p><p className="text-xs text-muted-foreground">App ID {r.appId}</p></div>
               {owned.has(r.appId)
                 ? <span className="flex items-center gap-1 text-xs text-muted-foreground"><Check className="size-3" />In library</span>

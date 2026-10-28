@@ -68,7 +68,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (hydrated) localStorage.setItem(isDesktopRuntime() ? DESKTOP_KEY : KEY, JSON.stringify(state));
+    if (hydrated) { try { localStorage.setItem(isDesktopRuntime() ? DESKTOP_KEY : KEY, JSON.stringify(state)); } catch { toast.error("Workspace could not be saved locally", { description:"Device storage is full or unavailable. Export important configurations and presets." }); } }
   }, [state, hydrated]);
 
   // ---- Cloud sync: signed-in users get their state saved to their account ----

@@ -263,16 +263,30 @@ fn jobs() -> &'static Mutex<HashMap<String, Arc<AtomicU8>>> {
 #[serde(rename_all = "camelCase")]
 struct Progress { id: String, received: u64, total: u64, status: &'static str, path: String, error: Option<String> }
 
+fn blocked_ip(ip: std::net::IpAddr) -> bool {
+    match ip {
+        std::net::IpAddr::V4(v) => v.is_private() || v.is_loopback() || v.is_link_local() || v.is_unspecified() || v.is_multicast() || v.is_broadcast() || v.octets()[0]==0 || v.octets()[0]>=240 || v.octets()[0]==100 && (64..=127).contains(&v.octets()[1]),
+        std::net::IpAddr::V6(v) => v.is_loopback() || v.is_unspecified() || v.is_multicast() || (v.segments()[0] & 0xfe00)==0xfc00 || (v.segments()[0] & 0xffc0)==0xfe80 || v.to_ipv4_mapped().map(|v|blocked_ip(std::net::IpAddr::V4(v))).unwrap_or(false),
+    }
+}
+struct PublicDns;
+impl reqwest::dns::Resolve for PublicDns {
+    fn resolve(&self, name: reqwest::dns::Name) -> reqwest::dns::Resolving {
+        let host=name.as_str().to_string();
+        Box::pin(async move {
+            let resolved: Vec<_> = tokio::net::lookup_host((host.as_str(),0)).await?.collect();
+            if resolved.is_empty() || resolved.iter().any(|a|blocked_ip(a.ip())) { return Err(Box::new(std::io::Error::new(std::io::ErrorKind::PermissionDenied,"DNS resolved to a local or reserved network")) as Box<dyn std::error::Error+Send+Sync>); }
+            Ok(Box::new(resolved.into_iter()) as reqwest::dns::Addrs)
+        })
+    }
+}
 fn validate_download_url(url: &reqwest::Url) -> Result<(), String> {
     if !["http","https"].contains(&url.scheme()) || !url.username().is_empty() || url.password().is_some() { return Err("Only public HTTP(S) file links without credentials are supported".into()); }
     let host=url.host_str().ok_or("URL has no host")?;
     let lower=host.to_ascii_lowercase();
     if lower=="localhost" || lower.ends_with(".localhost") || lower.ends_with(".local") || !lower.contains('.') && !lower.contains(':') { return Err("Local network downloads are not supported".into()); }
     if let Ok(ip)=host.trim_matches(|c| c=='[' || c==']').parse::<std::net::IpAddr>() {
-        let blocked = match ip {
-            std::net::IpAddr::V4(v) => v.is_private() || v.is_loopback() || v.is_link_local() || v.is_unspecified() || v.is_multicast() || v.is_broadcast(),
-            std::net::IpAddr::V6(v) => v.is_loopback() || v.is_unspecified() || v.is_multicast() || (v.segments()[0] & 0xfe00)==0xfc00 || (v.segments()[0] & 0xffc0)==0xfe80 || v.to_ipv4_mapped().map(|v|v.is_private() || v.is_loopback()).unwrap_or(false),
-        };
+        let blocked = blocked_ip(ip);
         if blocked { return Err("Local network downloads are not supported".into()); }
     }
     Ok(())
@@ -298,7 +312,7 @@ pub fn start_download(app: AppHandle, id: String, url: String, download_path: St
             let _ = app.emit("download://progress", Progress { id: id.clone(), received, total, status, path: dest.to_string_lossy().to_string(), error });
         };
         let result = async {
-            let client = reqwest::Client::builder().connect_timeout(std::time::Duration::from_secs(15))
+            let client = reqwest::Client::builder().no_proxy().dns_resolver(Arc::new(PublicDns)).timeout(std::time::Duration::from_secs(3600)).connect_timeout(std::time::Duration::from_secs(15))
                 .redirect(reqwest::redirect::Policy::custom(|attempt| {
                     if attempt.previous().len() >= 5 { return attempt.error("Too many redirects"); }
                     match validate_download_url(attempt.url()) { Ok(()) => attempt.follow(), Err(e) => attempt.error(e) }
