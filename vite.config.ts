@@ -28,7 +28,7 @@ export default defineConfig({
       clientsClaim: true,
       runtimeCaching: [
         {
-          urlPattern: ({ request, url, sameOrigin }) => sameOrigin && request.mode === "navigate" && !/^\/(?:~oauth|api|auth)(?:\/|$)/.test(url.pathname),
+          urlPattern: ({ request, url, sameOrigin }) => sameOrigin && request.mode === "navigate" && !/^\/(?:~oauth|api|auth|steam)(?:\/|$)/.test(url.pathname),
           handler: "NetworkFirst",
           options: { cacheName: "afscripts-pages", networkTimeoutSeconds: 4, cacheableResponse: { statuses: [200] }, expiration: { maxEntries: 24, maxAgeSeconds: 86400 } },
         },
